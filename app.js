@@ -93,9 +93,9 @@ function render(D, day) {
   const hero = $("hero");
   hero.classList.toggle("wait", !T.length);
   hero.classList.toggle("red", T.length > 0 && total < 0);
-  $("note").textContent = !T.length ? "Kona and Naiya are waiting for the first trade." : total >= 0 ? "Kona and Naiya are dancing." : "No dancing today. They'll be back tomorrow.";
-  const dance = T.length && total >= 0 && !reduce;
-  const want = dance ? "dance.webp" : "still.webp";
+  $("note").textContent = !T.length ? "Kona and Naiya are waiting for the first trade." : total >= 0 ? "Kona and Naiya are dancing." : "Too sad to look. They'll dance again tomorrow.";
+  const red = T.length && total < 0;
+  const want = red ? (reduce ? "cry_still.webp" : "cry.webp") : (T.length && !reduce) ? "dance.webp" : "still.webp";
   if (!$("dogimg").src.endsWith(want)) $("dogimg").src = want;
 
   $("bots").innerHTML = Object.entries(BOTS).map(([k, b]) => {
