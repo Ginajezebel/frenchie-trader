@@ -11,7 +11,9 @@ const $ = (id) => document.getElementById(id);
 const fmt = (v) => (v < 0 ? "−$" : "+$") + Math.abs(v).toFixed(2);
 const cls = (v) => (v < 0 ? "down" : "up");
 const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-let filt = "all", today = null, weekCache = {}, timer = null;
+let filt = "all", today = null, dayCache = {}, timer = null;
+let sel = null, wkOff = 0;            // sel: a past day being looked at (null = today). wkOff: 0 this week, -1 last week...
+const FIRST_MON = "2026-11-02";      // test week 1
 
 function getKey() { try { return localStorage.getItem(KEY) || ""; } catch { return ""; } }
 function setKey(v) { try { v ? localStorage.setItem(KEY, v) : localStorage.removeItem(KEY); } catch {} }
@@ -87,13 +89,17 @@ function render(D, day) {
   const sum = (k) => T.filter((t) => k === "all" || t.who === k).reduce((a, t) => a + t.pl, 0);
   const total = sum("all"), wins = T.filter((t) => t.pl > 0).length;
   const isToday = day === ptParts().ymd;
+  const long = new Date(day + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "UTC" });
+  $("past").hidden = !sel;
+  $("past-txt").textContent = `Looking at ${long}`;
+  $("line-h").textContent = sel ? "That day's line" : "Today's line";
   $("eyebrow").textContent = isToday ? "Today's profit · paper" : `${new Date(day + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" })} · paper`;
   $("total").textContent = T.length ? fmt(total) : "$0.00";
   $("sub").textContent = T.length ? `${T.length} trades · ${wins} wins · ${T.length - wins} losses` : "No closed trades yet";
   const hero = $("hero");
   hero.classList.toggle("wait", !T.length);
   hero.classList.toggle("red", T.length > 0 && total < 0);
-  $("note").textContent = !T.length ? "Kona and Naiya are waiting for the first trade." : total >= 0 ? "Kona and Naiya are dancing." : "Too sad to look. They'll dance again tomorrow.";
+  $("note").textContent = !T.length ? "Kona and Naiya are waiting for the first trade." : total >= 0 ? "Kona and Naiya are dancing." : (sel ? "Too sad to look. They danced again later." : "Too sad to look. They'll dance again tomorrow.");
   const red = T.length && total < 0;
   const want = red ? (reduce ? "cry_still.webp" : "cry.webp") : (T.length && !reduce) ? "dance.webp" : "still.webp";
   if (!$("dogimg").src.endsWith(want)) $("dogimg").src = want;
@@ -146,31 +152,48 @@ function drawLine(T, total) {
   });
 }
 
-function drawWeek(day, totals) {
-  const mon = addDays(day, -((dow(day) + 6) % 7));
+function weekNo(mon) { return Math.round((new Date(mon + "T12:00:00Z") - new Date(FIRST_MON + "T12:00:00Z")) / 6048e5) + 1; }
+function drawWeek(live, mon, totals) {
   const names = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-  const wk = names.map((n, i) => { const d = addDays(mon, i); return [n, totals[d] ?? null, d === day]; });
+  const shown = sel || live;
+  const wk = names.map((n, i) => { const d = addDays(mon, i); return [n, totals[d] ?? null, d === live, d, d === shown]; });
   const W = 340, H = 150, Tp = 18, B = 22, max = Math.max(20, ...wk.map((d) => Math.abs(d[1] || 0))) * 1.15;
   const mid = Tp + (H - Tp - B) / 2, sc = (H - Tp - B) / 2 / max, bw = 34, gap = (W - bw * 5) / 5;
   let s = `<line x1="0" x2="${W}" y1="${mid}" y2="${mid}" stroke="var(--line)" stroke-width="1.5"/>`;
   wk.forEach((d, i) => {
     const cx = gap / 2 + i * (bw + gap) + bw / 2, v = d[1];
-    if (v == null) s += `<rect x="${cx - bw / 2}" y="${mid - 14}" width="${bw}" height="28" rx="6" fill="none" stroke="var(--line)" stroke-dasharray="3 3"/>`;
+    let g = d[4] ? `<rect x="${cx - bw / 2 - 5}" y="2" width="${bw + 10}" height="${H - 4}" rx="10" fill="var(--chip)"/>` : "";
+    if (v == null) g += `<rect x="${cx - bw / 2}" y="${mid - 14}" width="${bw}" height="28" rx="6" fill="none" stroke="var(--line)" stroke-dasharray="3 3"/>`;
     else {
       const h = Math.max(3, Math.abs(v) * sc), y = v >= 0 ? mid - h : mid, col = v >= 0 ? "var(--up)" : "var(--down)";
-      s += `<path d="${v >= 0 ? `M${cx - bw / 2},${mid} V${y + 4} q0,-4 4,-4 H${cx + bw / 2 - 4} q4,0 4,4 V${mid}Z` : `M${cx - bw / 2},${mid} V${y + h - 4} q0,4 4,4 H${cx + bw / 2 - 4} q4,0 4,-4 V${mid}Z`}" fill="${col}"><title>${d[0]} ${fmt(v)}</title></path>
+      g += `<path d="${v >= 0 ? `M${cx - bw / 2},${mid} V${y + 4} q0,-4 4,-4 H${cx + bw / 2 - 4} q4,0 4,4 V${mid}Z` : `M${cx - bw / 2},${mid} V${y + h - 4} q0,4 4,4 H${cx + bw / 2 - 4} q4,0 4,-4 V${mid}Z`}" fill="${col}"><title>${d[0]} ${fmt(v)}</title></path>
       <text x="${cx}" y="${v >= 0 ? y - 5 : y + h + 12}" text-anchor="middle" font-size="11" font-weight="800" fill="var(--ink)">${fmt(v)}</text>`;
     }
-    s += `<text x="${cx}" y="${H - 4}" text-anchor="middle" font-size="11" font-weight="${d[2] ? 800 : 600}" fill="${d[2] ? "var(--ink)" : "var(--muted)"}">${d[2] ? "Today" : d[0]}</text>`;
+    g += `<text x="${cx}" y="${H - 4}" text-anchor="middle" font-size="11" font-weight="${d[4] ? 800 : 600}" fill="${d[4] ? "var(--ink)" : "var(--muted)"}">${d[2] && d[3] === ptParts().ymd ? "Today" : d[0]}</text>`;
+    const tap = d[3] <= live && v != null;
+    s += tap ? `<g class="day" data-d="${d[3]}" role="button" aria-label="Show ${d[0]}">${g}<rect x="${cx - bw / 2 - 8}" y="0" width="${bw + 16}" height="${H}" fill="transparent"/></g>` : g;
   });
-  $("week").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Daily profit this week">${s}</svg>`;
+  $("week").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Daily profit for the week">${s}</svg>`;
+  $("week").querySelectorAll(".day").forEach((el) => el.addEventListener("click", () => {
+    const d = el.dataset.d; sel = d === live ? null : d; load(); window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+  }));
   const tot = wk.reduce((a, d) => a + (d[1] || 0), 0);
-  $("wk-total").innerHTML = `Week so far: <b class="num ${cls(tot)}">${fmt(tot)}</b>`;
+  const n = weekNo(mon), fri = addDays(mon, 4);
+  const md = (x) => new Date(x + "T12:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+  $("wk-h").textContent = wkOff === 0 ? (n >= 1 ? `This week · Week ${n}` : "This week") : (n >= 1 ? `Week ${n} · ${md(mon)}–${md(fri)}` : `${md(mon)}–${md(fri)}`);
+  $("wk-total").innerHTML = `${wkOff === 0 ? "Week so far" : "Week total"}: <b class="num ${cls(tot)}">${fmt(tot)}</b>`;
+  $("wk-prev").disabled = mon <= FIRST_MON;
+  $("wk-next").disabled = wkOff >= 0;
 }
 
 // ---- load ----
 function setStatus(text, warn) { $("status").innerHTML = `<i class="live" style="${warn ? "background:var(--kona)" : ""}"></i>${text}`; }
 function showErr(el, msg) { el.textContent = msg; el.hidden = !msg; }
+
+async function dayLog(d) {             // past days never change, so fetch each once
+  if (!(d in dayCache)) dayCache[d] = parseLog(await gh(`results/bot_${d}.log`));
+  return dayCache[d];
+}
 
 async function load() {
   const day = tradingDay();
@@ -179,7 +202,8 @@ async function load() {
     const D = parseLog(text);
     today = D;
     showErr($("err"), "");
-    render(D, day);
+    if (sel && sel >= day) sel = null;
+    render(sel ? await dayLog(sel) : D, sel || day);
     const now = ptParts();
     if (!text) setStatus("No results yet today");
     else {
@@ -189,19 +213,14 @@ async function load() {
     }
     // week: past days once, today every time
     const totals = {};
-    const mon = addDays(day, -((dow(day) + 6) % 7));
+    const mon = addDays(addDays(day, -((dow(day) + 6) % 7)), 7 * wkOff);
     for (let i = 0; i < 5; i++) {
       const d = addDays(mon, i);
       if (d > day) break;
-      if (d === day) { totals[d] = D.trades.length ? D.trades.reduce((a, t) => a + t.pl, 0) : null; continue; }
-      if (!(d in weekCache)) {
-        const t = await gh(`results/bot_${d}.log`);
-        const p = parseLog(t);
-        weekCache[d] = p.trades.length ? p.trades.reduce((a, x) => a + x.pl, 0) : null;
-      }
-      totals[d] = weekCache[d];
+      const p = d === day ? D : await dayLog(d);
+      totals[d] = p.trades.length ? p.trades.reduce((a, t) => a + t.pl, 0) : null;
     }
-    drawWeek(day, totals);
+    drawWeek(day, mon, totals);
   } catch (e) {
     if (e.message === "key") {
       showErr($("err"), "GitHub turned the key down. It may have expired. Tap \"Remove key from this phone\" and paste a new read-only key.");
@@ -234,11 +253,14 @@ $("save").addEventListener("click", async () => {
     showErr($("setup-err"), "That key didn't work. Check that it has read access to the scalp-bot repo and try again.");
   }
 });
-$("forget").addEventListener("click", () => { setKey(""); weekCache = {}; start(); });
+$("forget").addEventListener("click", () => { setKey(""); dayCache = {}; sel = null; wkOff = 0; start(); });
+$("back").addEventListener("click", () => { sel = null; wkOff = 0; load(); });
+$("wk-prev").addEventListener("click", () => { wkOff--; load(); });
+$("wk-next").addEventListener("click", () => { if (wkOff < 0) wkOff++; load(); });
 $("refresh").addEventListener("click", load);
 document.addEventListener("visibilitychange", () => { if (!document.hidden && getKey()) load(); });
 document.querySelectorAll(".chips button").forEach((b) => b.addEventListener("click", () => {
   filt = b.dataset.f; document.querySelectorAll(".chips button").forEach((x) => x.setAttribute("aria-pressed", x === b));
-  if (today) render(today, tradingDay());
+  if (today) render(sel && dayCache[sel] ? dayCache[sel] : today, sel || tradingDay());
 }));
 start();
