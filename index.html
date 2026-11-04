@@ -123,6 +123,12 @@ h2{font-family:var(--display);font-weight:800;font-size:18px;margin:0;letter-spa
 .pill.warn{color:var(--kona)}
 .open + .open{margin-top:6px}
 .empty{color:var(--muted);font-size:14px;padding:8px 0}
+.past{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--chip);border-radius:12px;padding:8px 12px;font-weight:700;font-size:14px}
+.past .link{font-size:13px;color:var(--blue);font-weight:800}
+.wknav{display:flex;gap:6px}
+.wknav button{border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:12px;width:34px;height:30px;border-radius:999px;cursor:pointer}
+.wknav button:disabled{opacity:.3;cursor:default}
+#week .day{cursor:pointer}
 </style>
 
 <style>html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)} body{margin:0} [hidden]{display:none!important} img{max-width:100%}</style>
@@ -162,6 +168,7 @@ h2{font-family:var(--display);font-weight:800;font-size:18px;margin:0;letter-spa
   <div id="main" hidden>
     <div style="display:flex;flex-direction:column;gap:16px">
     <div class="err" id="err" hidden></div>
+    <div class="past" id="past" hidden><span id="past-txt"></span><button class="link" id="back">Back to today</button></div>
     <section class="hero wait" id="hero">
       <div class="eyebrow" id="eyebrow">Today's profit</div>
       <div class="big num" id="total">$0.00</div>
@@ -173,7 +180,7 @@ h2{font-family:var(--display);font-weight:800;font-size:18px;margin:0;letter-spa
     <section class="bots" id="bots"></section>
 
     <section class="card">
-      <div class="head"><h2>Today's line</h2><span>6:30 AM to 1:00 PM PT</span></div>
+      <div class="head"><h2 id="line-h">Today's line</h2><span>6:30 AM to 1:00 PM PT</span></div>
       <div class="chart" id="line"></div>
     </section>
 
@@ -190,9 +197,9 @@ h2{font-family:var(--display);font-weight:800;font-size:18px;margin:0;letter-spa
     </section>
 
     <section class="card">
-      <div class="head"><h2>This week</h2><span>Paper money</span></div>
+      <div class="head"><h2 id="wk-h">This week</h2><span class="wknav"><button id="wk-prev" aria-label="Earlier week">◀</button><button id="wk-next" aria-label="Later week">▶</button></span></div>
       <div class="chart" id="week"></div>
-      <div class="legend"><span><i style="background:var(--up)"></i>Green day</span><span><i style="background:var(--down)"></i>Red day</span><span id="wk-total"></span></div>
+      <div class="legend"><span>Tap a day to see its trades.</span><span id="wk-total"></span></div>
     </section>
 
     <p class="foot">Reads the bot's results, which it sends every 5 minutes.<br>Display only. It can't place trades.<br><button class="link" id="refresh">Refresh now</button> · <button class="link" id="forget">Remove key from this phone</button></p>
