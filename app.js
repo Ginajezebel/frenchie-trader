@@ -45,8 +45,10 @@ async function gh(path) {
 function parseLog(text) {
   const trades = [], open = new Map();
   let last = null, m;
+  const seen = new Set();
   for (const ln of (text || "").split("\n")) {
     if (!/^\d\d:\d\d:\d\d /.test(ln)) continue;
+    if (/PLAYS: SOLD/.test(ln)) { if (seen.has(ln)) continue; seen.add(ln); }  // the bot can print the same sale twice
     last = ln.slice(0, 5);
     const t = ln.slice(0, 5);
     if ((m = ln.match(/PLAYS: SOLD ([\d.]+) (\S+) @ ([\d.]+) \(([^)]+)\) P&L ([+-]?\d+(?:\.\d+)?) \[([^\]]+)\]/))) {
