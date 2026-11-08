@@ -18,7 +18,7 @@
 :root{
   --bg:#F3F5FC; --card:#FFFFFF; --ink:#0D1431; --ink2:#47507A; --muted:#7E86A6; --line:#E2E6F3; --chip:#ECEFFA;
   --blue:#2F5BFF; --up:#00A06A; --down:#E2324A;
-  --naiya:#6A4BFF; --kona:#E8801C; --plays:#0AA5BB;
+  --naiya:#6A4BFF; --kona:#E8801C; --eva:#D63384; --plays:#0AA5BB;
   --heroA:#00C27A; --heroB:#16A6F0; --heroRA:#FF4F67; --heroRB:#FF9B3D;
   --display:"Bricolage Grotesque",ui-rounded,"SF Pro Rounded",system-ui,sans-serif;
   --body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -26,11 +26,11 @@
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#090E21; --card:#121A35; --ink:#F1F3FF; --ink2:#B4BBD9; --muted:#7B83A6; --line:#222B4D; --chip:#1A2346;
-  --blue:#7390FF; --up:#2EE29B; --down:#FF6E80; --naiya:#9C86FF; --kona:#FFA64D; --plays:#3DD5E8;
+  --blue:#7390FF; --up:#2EE29B; --down:#FF6E80; --naiya:#9C86FF; --kona:#FFA64D; --eva:#FF6FB5; --plays:#3DD5E8;
   --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark }}
 :root[data-theme="dark"]{
   --bg:#090E21; --card:#121A35; --ink:#F1F3FF; --ink2:#B4BBD9; --muted:#7B83A6; --line:#222B4D; --chip:#1A2346;
-  --blue:#7390FF; --up:#2EE29B; --down:#FF6E80; --naiya:#9C86FF; --kona:#FFA64D; --plays:#3DD5E8;
+  --blue:#7390FF; --up:#2EE29B; --down:#FF6E80; --naiya:#9C86FF; --kona:#FFA64D; --eva:#FF6FB5; --plays:#3DD5E8;
   --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark }
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.4;-webkit-font-smoothing:antialiased}
@@ -70,7 +70,7 @@ button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .hero .note{margin-top:auto;padding-block:14px;font-size:12px;font-weight:700;opacity:.9;max-width:45%;position:relative;z-index:2}
 
 /* bot cards */
-.bots{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.bots{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .bot{background:var(--card);border-radius:18px;padding:12px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px;border-top:4px solid var(--c);min-width:0}
 .bot .who{display:flex;align-items:center;gap:6px}
 .bot .who svg{width:30px;height:30px;flex:none;border-radius:50%;background:var(--chip)}
@@ -110,7 +110,7 @@ h2{font-family:var(--display);font-weight:800;font-size:18px;margin:0;letter-spa
 .foot{font-size:12px;color:var(--muted);text-align:center;line-height:1.6}
 .foot b{color:var(--ink2)}
 @media (prefers-reduced-motion:reduce){.live{animation:none}}
-@media (max-width:370px){.bots{grid-template-columns:1fr 1fr}.bot.plays{grid-column:span 2}}
+
 
 .setup{display:flex;flex-direction:column;gap:12px}
 .setup p{margin:0;color:var(--ink2);line-height:1.5}
@@ -190,6 +190,7 @@ h2{font-family:var(--display);font-weight:800;font-size:18px;margin:0;letter-spa
         <button data-f="all" aria-pressed="true">All</button>
         <button data-f="naiya" aria-pressed="false">Naiya</button>
         <button data-f="kona" aria-pressed="false">Kona</button>
+        <button data-f="eva" aria-pressed="false">Eva</button>
         <button data-f="plays" aria-pressed="false">Plays</button>
       </div>
       <ul class="trades" id="trades"></ul>
