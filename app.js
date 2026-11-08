@@ -5,6 +5,7 @@ const TZ = "America/Los_Angeles";
 const BOTS = {
   naiya: { name: "Naiya", role: "Old scalper", c: "var(--naiya)" },
   kona: { name: "Kona", role: "New scalper", c: "var(--kona)" },
+  eva: { name: "Eva", role: "Bounce bot", c: "var(--eva)" },
   plays: { name: "Plays", role: "SPY · QQQ", c: "var(--plays)" },
 };
 const $ = (id) => document.getElementById(id);
@@ -52,12 +53,15 @@ function parseLog(text) {
     last = ln.slice(0, 5);
     const t = ln.slice(0, 5);
     if ((m = ln.match(/PLAYS: SOLD ([\d.]+) (\S+) @ ([\d.]+) \(([^)]+)\) P&L ([+-]?\d+(?:\.\d+)?) \[([^\]]+)\]/))) {
-      trades.push({ t, tk: m[2], who: "plays", pl: +m[5], why: m[6] });
-      open.delete("plays" + m[2]);
+      const who = m[6] === "eva" ? "eva" : "plays";
+      trades.push({ t, tk: m[2], who, pl: +m[5], why: who === "eva" ? "Bounce sold" : m[6] });
+      open.delete(who + m[2]);
     } else if ((m = ln.match(/PLAYS: FILLED ([\d.]+) (\S+) @ ([\d.]+) \[([^\]]+)\]/))) {
-      open.set("plays" + m[2], { t, tk: m[2], who: "plays", qty: +m[1], px: +m[3], why: m[4] });
+      const who = m[4] === "eva" ? "eva" : "plays";
+      open.set(who + m[2], { t, tk: m[2], who, qty: +m[1], px: +m[3], why: m[4] });
     } else if ((m = ln.match(/PLAYS: still holding ([\d.]+) (\S+) \(([^)]+)\)/))) {
-      open.set("plays" + m[2], { t: null, tk: m[2], who: "plays", qty: +m[1], px: null, why: m[3] });
+      const who = m[3] === "eva" ? "eva" : "plays";
+      open.set(who + m[2], { t: null, tk: m[2], who, qty: +m[1], px: null, why: m[3] });
     } else if ((m = ln.match(/^\d\d:\d\d:\d\d (\[NEW\] )?(\S+) [^:]*: CLOSED @ ([\d.]+) \(([^)]+)\) P&L ([+-]?\d+(?:\.\d+)?)/))) {
       const who = m[1] ? "kona" : "naiya";
       const why = { target: "Hit target", stop: "Stopped out", timeout: "Time ran out", "flatten time": "Sold at day end", "trailing stop": "Runner trailed" }[m[4]] || m[4];
@@ -74,9 +78,9 @@ function parseLog(text) {
 // ---- faces ----
 function face(kind) {
   if (kind === "plays") return `<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M8 28 L16 20 L22 24 L32 12" fill="none" stroke="var(--plays)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M26 12 H32 V18" fill="none" stroke="var(--plays)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-  const naiya = kind === "naiya";
-  const ear = naiya ? "#141414" : "#4A3426", head = naiya ? "#F7F5F2" : "#5E4330", muz = naiya ? "#DCD6D0" : "#2A1D16";
-  const marks = naiya
+  const naiya = kind === "naiya", eva = kind === "eva";
+  const ear = naiya ? "#141414" : eva ? "#B9804A" : "#4A3426", head = naiya ? "#F7F5F2" : eva ? "#E8C08E" : "#5E4330", muz = naiya ? "#DCD6D0" : eva ? "#3A2A20" : "#2A1D16";
+  const marks = eva ? `<ellipse cx="20" cy="27" rx="9" ry="7" fill="#3A2A20" opacity=".55"/>` : naiya
     ? `<ellipse cx="13.5" cy="20" rx="7" ry="7.5" fill="#141414"/><ellipse cx="26.5" cy="20" rx="7" ry="7.5" fill="#141414"/><rect x="18" y="10" width="4" height="16" rx="2" fill="#F7F5F2"/>`
     : `<path d="M10 16 l3 6 M15 13 l2 7 M26 13 l-2 7 M30 16 l-3 6" stroke="#3B2A1F" stroke-width="1.2"/>`;
   return `<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M9 20 L6 5 Q13 6 16 13Z" fill="${ear}"/><path d="M31 20 L34 5 Q27 6 24 13Z" fill="${ear}"/>
@@ -101,7 +105,7 @@ function render(D, day) {
   const hero = $("hero");
   hero.classList.toggle("wait", !T.length);
   hero.classList.toggle("red", T.length > 0 && total < 0);
-  $("note").textContent = !T.length ? "Kona and Naiya are waiting for the first trade." : total >= 0 ? "Kona and Naiya are dancing." : (sel ? "Too sad to look. They danced again later." : "Too sad to look. They'll dance again tomorrow.");
+  $("note").textContent = !T.length ? "The frenchies are waiting for the first trade." : total >= 0 ? "The frenchies are dancing." : (sel ? "Too sad to look. They danced again later." : "Too sad to look. They'll dance again tomorrow.");
   const red = T.length && total < 0;
   const want = red ? (reduce ? "cry_still.webp" : "cry.webp") : (T.length && !reduce) ? "dance.webp" : "still.webp";
   if (!$("dogimg").src.endsWith(want)) $("dogimg").src = want;
