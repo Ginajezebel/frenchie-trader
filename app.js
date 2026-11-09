@@ -241,7 +241,7 @@ function start() {
   const has = !!getKey();
   $("setup").hidden = has;
   $("main").hidden = !has;
-  $("mine").hidden = true; $("me-open").hidden = true;
+  if ($("mine")) { $("mine").hidden = true; $("me-open").hidden = true; }   // guard: an old cached page may not have these yet
   clearInterval(timer);
   if (has) { load(); loadMe(); timer = setInterval(() => { if (!document.hidden) load(); }, 60000); }
   else setStatus("Not connected", true);
