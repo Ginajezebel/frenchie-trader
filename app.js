@@ -241,6 +241,7 @@ function start() {
   const has = !!getKey();
   $("setup").hidden = has;
   $("main").hidden = !has;
+  $("mine").hidden = true; $("me-open").hidden = true;
   clearInterval(timer);
   if (has) { load(); loadMe(); timer = setInterval(() => { if (!document.hidden) load(); }, 60000); }
   else setStatus("Not connected", true);
@@ -276,20 +277,17 @@ let meOpen = false, meDay = null;
 function shortDay(ymd) { return new Date(ymd + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" }); }
 async function loadMe() {
   let M;
-  try { const t = await gh("me/my_trades.json"); if (!t) { $("me").hidden = true; return; } M = JSON.parse(t); } catch { return; }
+  try { const t = await gh("me/my_trades.json"); if (!t) { $("me-open").hidden = true; return; } M = JSON.parse(t); } catch { return; }
   const floor = M.floor || 25;
   const days = (M.days || []).map((d) => {
     const tr = d.trades || [];
     const pl = d.pl != null ? d.pl : tr.reduce((a, t) => a + (+t.pl || 0), 0);
     return { ...d, tr, pl: Math.round(pl * 100) / 100 };
   }).sort((a, b) => (a.date < b.date ? 1 : -1));
-  $("me").hidden = !days.length;
+  $("me-open").hidden = !days.length;
   if (!days.length) return;
-  const last = days[0], total = days.reduce((a, d) => a + d.pl, 0);
+  const total = days.reduce((a, d) => a + d.pl, 0);
   const hits = days.filter((d) => d.pl >= floor).length, greens = days.filter((d) => d.pl > 0).length;
-  $("me-sub").textContent = `${shortDay(last.date)} · tap to see by day`;
-  $("me-val").className = "mv num " + cls(last.pl);
-  $("me-val").textContent = fmt(last.pl);
   $("me-stats").innerHTML = `<div>All days<b class="num ${cls(total)}">${fmt(total)}</b></div>
     <div>Green days<b class="num">${greens} of ${days.length}</b></div>
     <div>Hit $${floor}+<b class="num">${hits} of ${days.length}</b></div>`;
@@ -300,9 +298,13 @@ async function loadMe() {
       ${meDay === d.date ? `<ul class="metr">${d.bal ? `<li><span>Account at close</span><span class="num" style="font-weight:800">$${d.bal.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span></li>` : ""}${d.tr.map((t) => `<li><span><b>${t.tk}</b>${t.qty ? ` · ${t.qty} sh` : ""}${t.buy ? ` · $${t.buy} → $${t.sell}` : ""}${t.why ? ` · ${t.why}` : ""}</span><span class="num ${cls(+t.pl)}" style="font-weight:800">${fmt(+t.pl)}</span></li>`).join("")}</ul>` : ""}</li>`).join("");
   $("me-days").querySelectorAll("button.dr").forEach((b) => b.addEventListener("click", () => { meDay = meDay === b.dataset.d ? null : b.dataset.d; loadMe(); }));
 }
-$("me-btn").addEventListener("click", () => {
-  meOpen = !meOpen; $("me").classList.toggle("on", meOpen);
-  $("me-btn").setAttribute("aria-expanded", meOpen); $("me-body").hidden = !meOpen;
-});
+function showMe(on) {
+  meOpen = on && !!getKey();
+  $("mine").hidden = !meOpen; $("main").hidden = meOpen || !getKey();
+  $("me-open").setAttribute("aria-pressed", meOpen);
+  window.scrollTo({ top: 0 });
+}
+$("me-open").addEventListener("click", () => showMe($("mine").hidden));
+$("me-close").addEventListener("click", () => showMe(false));
 setInterval(() => { if (!document.hidden && getKey()) loadMe(); }, 300000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden && getKey()) loadMe(); });

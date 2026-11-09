@@ -130,7 +130,11 @@ h2{font-family:var(--display);font-weight:800;font-size:18px;margin:0;letter-spa
 .wknav button:disabled{opacity:.3;cursor:default}
 #week .day{cursor:pointer}
 
-/* my own trading */
+/* my own trading: a quiet "Me" button in the top bar opens its own screen */
+.mebtn{margin-left:auto;border:1px solid var(--line);background:none;color:var(--muted);font:inherit;font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;cursor:pointer}
+.mebtn:not([hidden]) + .pill{margin-left:6px}
+.mebtn[aria-pressed="true"]{color:var(--ink);border-color:var(--ink2)}
+#mine .head{align-items:center}
 .me{background:var(--card);border-radius:20px;box-shadow:var(--shadow);border-left:5px solid var(--blue);overflow:hidden}
 .me>button.mehead{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;cursor:pointer}
 .me>button.mehead:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
@@ -182,6 +186,7 @@ h2{font-family:var(--display);font-weight:800;font-size:18px;margin:0;letter-spa
       </g>
     </svg>
     <div class="brand"><b>Frenchie Trader</b><span id="status"><i class="live"></i>Loading…</span></div>
+    <button class="mebtn" id="me-open" hidden aria-label="My own trades">Me</button>
     <span class="pill">Paper</span>
   </header>
 
@@ -206,17 +211,6 @@ h2{font-family:var(--display);font-weight:800;font-size:18px;margin:0;letter-spa
       <div class="dogs"><img id="dogimg" src="still.webp" alt="Kona and Naiya"></div>
     </section>
 
-    <section class="me" id="me" hidden>
-      <button class="mehead" id="me-btn" aria-expanded="false" aria-controls="me-body">
-        <span class="mi" aria-hidden="true">🧑‍💼</span>
-        <span class="mt"><b>My trading</b><small id="me-sub">Tap to see my days</small></span>
-        <span class="mv num" id="me-val"></span><span class="chev" aria-hidden="true">▶</span>
-      </button>
-      <div class="mebody" id="me-body" hidden>
-        <div class="mestats" id="me-stats"></div>
-        <ul class="medays" id="me-days"></ul>
-      </div>
-    </section>
     <section class="bots" id="bots"></section>
 
     <section class="card">
@@ -245,6 +239,14 @@ h2{font-family:var(--display);font-weight:800;font-size:18px;margin:0;letter-spa
 
     <p class="foot">Reads the bot's results, which it sends every 5 minutes.<br>Display only. It can't place trades.<br><button class="link" id="refresh">Refresh now</button> · <button class="link" id="forget">Remove key from this phone</button></p>
     </div>
+  </div>
+
+  <div id="mine" hidden>
+    <section class="card">
+      <div class="head"><h2>My trading</h2><button class="link" id="me-close">← Back to the bots</button></div>
+      <div class="mestats" id="me-stats"></div>
+      <ul class="medays" id="me-days"></ul>
+    </section>
   </div>
 </div>
 <script src="app.js"></script>
