@@ -242,7 +242,7 @@ function start() {
   $("setup").hidden = has;
   $("main").hidden = !has;
   clearInterval(timer);
-  if (has) { load(); timer = setInterval(() => { if (!document.hidden) load(); }, 60000); }
+  if (has) { load(); loadMe(); timer = setInterval(() => { if (!document.hidden) load(); }, 60000); }
   else setStatus("Not connected", true);
 }
 
@@ -270,3 +270,39 @@ document.querySelectorAll(".chips button").forEach((b) => b.addEventListener("cl
   if (today) render(sel && dayCache[sel] ? dayCache[sel] : today, sel || tradingDay());
 }));
 start();
+
+// ---- my own trading (James's trades, not the bots): me/my_trades.json in the scalp-bot repo ----
+let meOpen = false, meDay = null;
+function shortDay(ymd) { return new Date(ymd + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" }); }
+async function loadMe() {
+  let M;
+  try { const t = await gh("me/my_trades.json"); if (!t) { $("me").hidden = true; return; } M = JSON.parse(t); } catch { return; }
+  const floor = M.floor || 25;
+  const days = (M.days || []).map((d) => {
+    const tr = d.trades || [];
+    const pl = d.pl != null ? d.pl : tr.reduce((a, t) => a + (+t.pl || 0), 0);
+    return { ...d, tr, pl: Math.round(pl * 100) / 100 };
+  }).sort((a, b) => (a.date < b.date ? 1 : -1));
+  $("me").hidden = !days.length;
+  if (!days.length) return;
+  const last = days[0], total = days.reduce((a, d) => a + d.pl, 0);
+  const hits = days.filter((d) => d.pl >= floor).length, greens = days.filter((d) => d.pl > 0).length;
+  $("me-sub").textContent = `${shortDay(last.date)} · tap to see by day`;
+  $("me-val").className = "mv num " + cls(last.pl);
+  $("me-val").textContent = fmt(last.pl);
+  $("me-stats").innerHTML = `<div>All days<b class="num ${cls(total)}">${fmt(total)}</b></div>
+    <div>Green days<b class="num">${greens} of ${days.length}</b></div>
+    <div>Hit $${floor}+<b class="num">${hits} of ${days.length}</b></div>`;
+  const badge = (pl) => pl >= floor ? `<span class="badge hit">$${floor}+ ✓</span>` : pl < 0 ? `<span class="badge red">Red day</span>` : `<span class="badge miss">$${(floor - pl).toFixed(2)} to $${floor}</span>`;
+  $("me-days").innerHTML = days.map((d) => `<li><button class="dr" data-d="${d.date}" aria-expanded="${meDay === d.date}">
+      <span class="dd">${shortDay(d.date)}${d.tr.length ? ` <small style="color:var(--muted);font-weight:600">· ${d.tr.length} trades</small>` : ""}</span>
+      ${badge(d.pl)}<span class="amt num ${cls(d.pl)}">${fmt(d.pl)}</span></button>
+      ${meDay === d.date ? `<ul class="metr">${d.bal ? `<li><span>Account at close</span><span class="num" style="font-weight:800">$${d.bal.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span></li>` : ""}${d.tr.map((t) => `<li><span><b>${t.tk}</b>${t.qty ? ` · ${t.qty} sh` : ""}${t.buy ? ` · $${t.buy} → $${t.sell}` : ""}${t.why ? ` · ${t.why}` : ""}</span><span class="num ${cls(+t.pl)}" style="font-weight:800">${fmt(+t.pl)}</span></li>`).join("")}</ul>` : ""}</li>`).join("");
+  $("me-days").querySelectorAll("button.dr").forEach((b) => b.addEventListener("click", () => { meDay = meDay === b.dataset.d ? null : b.dataset.d; loadMe(); }));
+}
+$("me-btn").addEventListener("click", () => {
+  meOpen = !meOpen; $("me").classList.toggle("on", meOpen);
+  $("me-btn").setAttribute("aria-expanded", meOpen); $("me-body").hidden = !meOpen;
+});
+setInterval(() => { if (!document.hidden && getKey()) loadMe(); }, 300000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && getKey()) loadMe(); });
