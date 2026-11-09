@@ -135,6 +135,10 @@ h2{font-family:var(--display);font-weight:800;font-size:18px;margin:0;letter-spa
 .mebtn:not([hidden]) + .pill{margin-left:6px}
 .mebtn[aria-pressed="true"]{color:var(--ink);border-color:var(--ink2)}
 #mine .head{align-items:center}
+.metotal{background:var(--chip);border-radius:16px;padding:14px 16px;margin-bottom:10px}
+.metotal small{display:block;font-size:12px;color:var(--muted);font-weight:700}
+.metotal b{display:block;font-family:var(--display);font-weight:800;font-size:36px;letter-spacing:-.02em;line-height:1.1;margin-block:2px}
+.metotal span{font-size:12.5px;color:var(--ink2);font-weight:600}
 .me{background:var(--card);border-radius:20px;box-shadow:var(--shadow);border-left:5px solid var(--blue);overflow:hidden}
 .me>button.mehead{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;cursor:pointer}
 .me>button.mehead:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
@@ -244,11 +248,12 @@ h2{font-family:var(--display);font-weight:800;font-size:18px;margin:0;letter-spa
   <div id="mine" hidden>
     <section class="card">
       <div class="head"><h2>My trading</h2><button class="link" id="me-close">← Back to the bots</button></div>
+      <div class="metotal" id="me-total"></div>
       <div class="mestats" id="me-stats"></div>
       <ul class="medays" id="me-days"></ul>
     </section>
   </div>
 </div>
-<script src="app.js?v=20261109b"></script>
+<script src="app.js?v=20261109c"></script>
 </body>
 </html>

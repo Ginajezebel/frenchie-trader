@@ -288,7 +288,14 @@ async function loadMe() {
   if (!days.length) return;
   const total = days.reduce((a, d) => a + d.pl, 0);
   const hits = days.filter((d) => d.pl >= floor).length, greens = days.filter((d) => d.pl > 0).length;
-  $("me-stats").innerHTML = `<div>All days<b class="num ${cls(total)}">${fmt(total)}</b></div>
+  const money = (v) => "$" + v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const st = M.start || { date: days[days.length - 1].date };
+  const md = (x) => new Date(x + "T12:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+  const lastBal = days.find((d) => d.bal)?.bal;
+  const pct = st.bal ? ` (${total >= 0 ? "+" : "−"}${Math.abs(total / st.bal * 100).toFixed(1)}%)` : "";
+  if ($("me-total")) $("me-total").innerHTML = `<small>Total profit since ${md(st.date)}</small><b class="num ${cls(total)}">${fmt(total).replace(/(\d)(?=(\d{3})+\.)/g, "$1,")}</b>
+    ${st.bal && lastBal ? `<span>Started with ${money(st.bal)} · now ${money(lastBal)}${pct}</span>` : ""}`;
+  $("me-stats").innerHTML = `<div>Days traded<b class="num">${days.length}</b></div>
     <div>Green days<b class="num">${greens} of ${days.length}</b></div>
     <div>Hit $${floor}+<b class="num">${hits} of ${days.length}</b></div>`;
   const badge = (pl) => pl >= floor ? `<span class="badge hit">$${floor}+ ✓</span>` : pl < 0 ? `<span class="badge red">Red day</span>` : `<span class="badge miss">$${(floor - pl).toFixed(2)} to $${floor}</span>`;
