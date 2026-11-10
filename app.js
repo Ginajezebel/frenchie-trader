@@ -273,7 +273,8 @@ document.querySelectorAll(".chips button").forEach((b) => b.addEventListener("cl
 start();
 
 // ---- my own trading (James's trades, not the bots): me/my_trades.json in the scalp-bot repo ----
-let meOpen = false, meDay = null;
+let meOpen = false, meDay = null, meView = "days", meGrp = null;
+if ($("me-tabs")) $("me-tabs").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { meView = b.dataset.v; meGrp = null; loadMe(); }));
 function shortDay(ymd) { return new Date(ymd + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" }); }
 async function loadMe() {
   let M;
@@ -304,6 +305,35 @@ async function loadMe() {
       ${badge(d.pl)}<span class="amt num ${cls(d.pl)}">${fmt(d.pl)}</span></button>
       ${meDay === d.date ? `<ul class="metr">${d.bal ? `<li><span>Account at close</span><span class="num" style="font-weight:800">$${d.bal.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span></li>` : ""}${d.tr.map((t) => `<li><span><b>${t.tk}</b>${t.qty ? ` · ${t.qty} sh` : ""}${t.buy ? ` · $${t.buy} → $${t.sell}` : ""}${t.why ? ` · ${t.why}` : ""}</span><span class="num ${cls(+t.pl)}" style="font-weight:800">${fmt(+t.pl)}</span></li>`).join("")}</ul>` : ""}</li>`).join("");
   $("me-days").querySelectorAll("button.dr").forEach((b) => b.addEventListener("click", () => { meDay = meDay === b.dataset.d ? null : b.dataset.d; loadMe(); }));
+
+  // Weeks / Months tabs: same list, grouped. Tap a row to see what's inside it.
+  if ($("me-tabs")) $("me-tabs").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === meView));
+  if (meView === "days") return;
+  const monOf = (ymd) => addDays(ymd, -((dow(ymd) + 6) % 7));
+  const groups = new Map();
+  for (const d of days) {
+    const k = meView === "weeks" ? monOf(d.date) : d.date.slice(0, 7);
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(d);
+  }
+  const label = (k) => meView === "weeks"
+    ? `Week of ${new Date(k + "T12:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`
+    : new Date(k + "-15T12:00:00Z").toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
+  const rows = [...groups.entries()].map(([k, ds]) => {
+    const pl = Math.round(ds.reduce((a, d) => a + d.pl, 0) * 100) / 100, avg = pl / ds.length;
+    const g = ds.filter((d) => d.pl > 0).length;
+    const inside = meView === "weeks"
+      ? ds.slice().reverse().map((d) => `<li><span>${shortDay(d.date)}</span><span class="num ${cls(d.pl)}" style="font-weight:800">${fmt(d.pl)}</span></li>`)
+      : [...ds.reduce((m, d) => { const w = monOf(d.date); m.set(w, (m.get(w) || 0) + d.pl); return m; }, new Map())]
+          .map(([w, v]) => `<li><span>Week of ${new Date(w + "T12:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}</span><span class="num ${cls(v)}" style="font-weight:800">${fmt(Math.round(v * 100) / 100)}</span></li>`);
+    return `<li><button class="dr" data-g="${k}" aria-expanded="${meGrp === k}">
+      <span class="dd">${label(k)} <small style="color:var(--muted);font-weight:600">· ${ds.length} days · ${g} green</small></span>
+      <span class="badge ${avg >= floor ? "hit" : avg < 0 ? "red" : "miss"}">${fmt(Math.round(avg * 100) / 100)}/day</span>
+      <span class="amt num ${cls(pl)}">${fmt(pl)}</span></button>
+      ${meGrp === k ? `<ul class="metr">${inside.join("")}</ul>` : ""}</li>`;
+  });
+  $("me-days").innerHTML = rows.join("");
+  $("me-days").querySelectorAll("button.dr").forEach((b) => b.addEventListener("click", () => { meGrp = meGrp === b.dataset.g ? null : b.dataset.g; loadMe(); }));
 }
 function showMe(on) {
   meOpen = on && !!getKey();
