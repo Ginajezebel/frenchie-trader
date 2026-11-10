@@ -106,6 +106,8 @@ mark{background:#FFE066;color:#111733;border-radius:4px;padding:0 2px}
 .sheet h3{margin:0 0 8px;font-size:24px}
 .sheet p{margin:0 0 16px;color:var(--ink2);font-size:19px}
 .toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 14px);background:var(--ink);color:var(--bg);padding:14px 22px;border-radius:999px;font-weight:700;font-size:18px;z-index:60;box-shadow:var(--shadow);max-width:90vw;text-align:center}
+.sync{border:0;background:var(--chip);color:var(--ink2);border-radius:999px;height:40px;padding:0 14px;font-size:16px;font-weight:700;white-space:nowrap}
+.sync.ok{color:var(--green)} .sync.bad{color:var(--red)} .sync:empty{display:none}
 .banner{background:var(--chip);border-radius:16px;padding:14px 16px;font-size:17px;color:var(--ink2);margin-bottom:16px;display:flex;gap:10px;align-items:center}
 .banner button{margin-left:auto;flex:none}
 </style>
@@ -127,11 +129,12 @@ const EMOJIS = ["📁","🚗","🏠","🩺","📈","💵","👨‍👩‍👧","
 /* ---------- storage ---------- */
 function load(){
   try{ const d = JSON.parse(localStorage.getItem(STORE)); if(d && Array.isArray(d.notes) && Array.isArray(d.sections)) return d; }catch{}
-  return { sections: DEFAULT_SECTIONS.map(([id,em,name])=>({id,em,name})), notes: [], lastBackup: 0 };
+  return { sections: DEFAULT_SECTIONS.map(([id,em,name])=>({id,em,name})), notes: [], deleted: {}, sectionsUpdated: 0, lastBackup: 0 };
 }
 let db = load();
+if(!db.deleted) db.deleted = {};
 function save(){
-  try{ localStorage.setItem(STORE, JSON.stringify(db)); return true; }
+  try{ localStorage.setItem(STORE, JSON.stringify(db)); syncSoon(); return true; }
   catch{ toast("Could not save. Phone storage may be full."); return false; }
 }
 try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch{}
@@ -200,9 +203,9 @@ function render(){
 /* ---------- home ---------- */
 function viewHome(){
   const days = db.lastBackup ? Math.floor((Date.now()-db.lastBackup)/864e5) : null;
-  const needBackup = db.notes.length >= 3 && (days === null || days >= 14);
+  const needBackup = !getToken() && db.notes.length >= 3 && (days === null || days >= 14);
   $("#app").innerHTML = `
-    <div class="top"><h1>My Notes</h1><button class="iconbtn" aria-label="Settings and backup" data-go="#settings">${ICON.gear}</button></div>
+    <div class="top"><h1>My Notes</h1><button class="sync" id="syncpill" data-go="#settings">${pillText()}</button><button class="iconbtn" aria-label="Settings and backup" data-go="#settings">${ICON.gear}</button></div>
     ${needBackup ? `<div class="banner">💾 ${days===null ? "Save a backup of your notes." : `Last backup ${days} days ago.`}<button class="small" data-go="#settings">Back up</button></div>` : ""}
     <div class="search">${ICON.search}<input id="q" type="search" placeholder="Search all notes" autocomplete="off" autocorrect="off" enterkeyhint="search" value="${esc(query)}" aria-label="Search all notes"><button class="clear ${query?"":"hide"}" aria-label="Clear search">×</button></div>
     <div id="body"></div>
@@ -271,12 +274,13 @@ function viewEdit(id, presetSection){
   $("#f-save").addEventListener("click", () => {
     const title = $("#f-title").value.trim(), body = $("#f-body").value.replace(/\s+$/,""), section = $("#f-sec").value;
     if(!title && !body.trim()){ toast("Type a title or a note first."); return; }
-    if(n){ Object.assign(n, {title, body, section, updated: Date.now()}); }
+    if(n){ const cur = db.notes.find(x=>x.id===n.id); const upd = {title, body, section, updated: Date.now()};
+      if(cur) Object.assign(cur, upd); else db.notes.push({...n, ...upd}); delete db.deleted[n.id]; }
     else db.notes.push({id: uid(), title, body, section, created: Date.now(), updated: Date.now()});
     if(save()){ toast("Saved ✓"); history.replaceState(null,"","#s/"+encodeURIComponent(section)); render(); }
   });
   if(n) $("#f-del").addEventListener("click", () => ask("Delete this note?", "“"+(n.title||"Untitled")+"” will be gone for good.", "Delete", () => {
-    db.notes = db.notes.filter(x=>x.id!==n.id); save(); toast("Deleted"); history.replaceState(null,"",backTo); render();
+    db.notes = db.notes.filter(x=>x.id!==n.id); db.deleted[n.id] = Date.now(); save(); toast("Deleted"); history.replaceState(null,"",backTo); render();
   }));
 }
 
@@ -286,8 +290,18 @@ function viewSettings(){
   $("#app").innerHTML = `
     <div class="top"><button class="iconbtn" aria-label="Back" data-go="#">${ICON.back}</button><h1>Settings</h1></div>
     <div class="card">
+      <h2>🔄 Sync with GitHub</h2>
+      ${getToken() ? `<p>Notes are saved to your private <b>${esc(DATA_REPO)}</b> repo, so they show on every phone and computer you connect.</p>
+        <p style="font-size:16px;color:var(--muted)">Status: <b>${esc(syncMsg || "Not synced yet")}</b></p>
+        <button class="btn" id="syncnow">Sync now</button>
+        <button class="btn danger" id="unlink" style="margin-top:10px">Disconnect this device</button>`
+      : `<p>Paste your GitHub key once to keep notes in your private <b>${esc(DATA_REPO)}</b> repo and see them on your computer too.</p>
+        <label class="field" style="margin:0"><input id="tok" type="password" placeholder="Paste key (github_pat_…)" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+        <button class="btn" id="link">Connect</button>`}
+    </div>
+    <div class="card">
       <h2>💾 Backup</h2>
-      <p>Your notes are saved only on this phone. Save a backup file now and then (to Files or iCloud Drive) so you never lose them.</p>
+      <p>${getToken() ? "Extra safety copy: save a backup file to Files or iCloud Drive." : "Your notes are saved only on this device. Save a backup file now and then (to Files or iCloud Drive) so you never lose them."}</p>
       <p style="font-size:16px;color:var(--muted)">Last backup: <b>${last}</b> · ${db.notes.length} notes</p>
       <button class="btn" id="exp">Save backup file</button>
       <button class="btn soft" id="imp" style="margin-top:10px">Restore from backup</button>
@@ -312,24 +326,32 @@ function viewSettings(){
     const other = db.sections.findIndex(s=>s.id==="other");
     const s = {id: uid(), em: pickedEm, name};
     other >= 0 ? db.sections.splice(other,0,s) : db.sections.push(s);
-    save(); toast("Added “"+name+"”"); viewSettings();
+    db.sectionsUpdated = Date.now(); save(); toast("Added “"+name+"”"); viewSettings();
   });
   $("#secs").addEventListener("click", e => {
     const r = e.target.closest("[data-ren]"), d = e.target.closest("[data-del]");
     if(r){ const s = sec(r.dataset.ren); const row = r.closest(".secrow");
       row.innerHTML = `<span class="em">${s.em}</span><input type="text" value="${esc(s.name)}" style="flex:1;min-width:0;border:2px solid var(--blue);border-radius:12px;padding:8px 10px;font-size:19px;background:var(--card)"><button class="small">Done</button>`;
       const inp = row.querySelector("input"); inp.focus(); inp.select();
-      const done = () => { const v = inp.value.trim(); if(v){ s.name = v; save(); } viewSettings(); };
+      const done = () => { const v = inp.value.trim(); if(v){ s.name = v; db.sectionsUpdated = Date.now(); save(); } viewSettings(); };
       row.querySelector("button").addEventListener("click", done); inp.addEventListener("keydown", ev => { if(ev.key==="Enter") done(); });
     }
     if(d){ const s = sec(d.dataset.del); const c = db.notes.filter(n=>n.section===s.id).length;
       ask("Remove “"+s.name+"”?", c ? `Its ${c} note${c===1?"":"s"} will move to Other.` : "It has no notes.", "Remove", () => {
-        db.notes.forEach(n => { if(n.section===s.id) n.section = "other"; });
+        db.notes.forEach(n => { if(n.section===s.id){ n.section = "other"; n.updated = Date.now(); } });
+        db.sectionsUpdated = Date.now();
         db.sections = db.sections.filter(x=>x.id!==s.id);
         if(!db.sections.some(x=>x.id==="other")) db.sections.push({id:"other",em:"📁",name:"Other"});
         save(); viewSettings();
       });
     }
+  });
+  if($("#syncnow")) $("#syncnow").addEventListener("click", async () => { await sync(true); viewSettings(); });
+  if($("#unlink")) $("#unlink").addEventListener("click", () => ask("Disconnect this device?", "Notes stay on this device and in GitHub. This device just stops syncing.", "Disconnect", () => { setToken(""); syncMsg = ""; viewSettings(); }));
+  if($("#link")) $("#link").addEventListener("click", async () => {
+    const t = $("#tok").value.trim(); if(!t){ toast("Paste your key first."); return; }
+    setToken(t); toast("Connecting…"); const ok = await sync(true);
+    if(!ok){ setToken(""); } viewSettings();
   });
   $("#exp").addEventListener("click", exportBackup);
   $("#imp").addEventListener("click", () => $("#impfile").click());
@@ -357,16 +379,107 @@ function importBackup(e){
       d.sections.forEach(s => { if(s && s.id && !db.sections.some(x=>x.id===s.id)) db.sections.splice(Math.max(0,db.sections.length-1),0,{id:String(s.id),em:String(s.em||"📁"),name:String(s.name||"Section")}); });
       d.notes.forEach(n => { if(!n || !n.id) return; const clean = {id:String(n.id), title:String(n.title||""), body:String(n.body||""), section:String(n.section||"other"), created:+n.created||Date.now(), updated:+n.updated||Date.now()};
         const i = db.notes.findIndex(x=>x.id===clean.id); i>=0 ? db.notes[i] = clean : db.notes.push(clean); });
-      save(); toast("Restored ✓"); go("#");
+      db.sectionsUpdated = Date.now(); save(); toast("Restored ✓"); go("#");
     });
   };
   r.readAsText(f);
 }
 
+/* ---------- GitHub sync (private repo; key stays on this device) ---------- */
+const DATA_REPO = "Ginajezebel/my-notes";
+const DATA_FILE = "notes.json";
+const TOKEN_KEY = "mynotes_key";
+function getToken(){ try{ return localStorage.getItem(TOKEN_KEY) || ""; }catch{ return ""; } }
+function setToken(v){ try{ v ? localStorage.setItem(TOKEN_KEY, v) : localStorage.removeItem(TOKEN_KEY); }catch{} }
+let syncMsg = "", syncState = "", syncing = false, syncAgain = false, syncTimer;
+function pillText(){ if(!getToken()) return ""; return syncState==="busy" ? "Syncing…" : syncState==="ok" ? "✓ Synced" : syncState==="bad" ? "⚠ Not synced" : ""; }
+function setSync(state, msg){
+  syncState = state; if(msg) syncMsg = msg;
+  const p = $("#syncpill"); if(p){ p.textContent = pillText(); p.className = "sync " + (state==="ok"?"ok":state==="bad"?"bad":""); }
+}
+function syncSoon(){ if(!getToken()) return; clearTimeout(syncTimer); syncTimer = setTimeout(() => sync(false), 600); }
+function toB64(str){ const bytes = new TextEncoder().encode(str); let bin = ""; for(let i=0;i<bytes.length;i+=0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i,i+0x8000)); return btoa(bin); }
+function fromB64(b){ const bin = atob(b.replace(/\s/g,"")); return new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0))); }
+async function gh(method, body){
+  const r = await fetch(`https://api.github.com/repos/${DATA_REPO}/contents/${DATA_FILE}`, {
+    method, cache: "no-store",
+    headers: { Authorization: `Bearer ${getToken()}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", ...(body?{"Content-Type":"application/json"}:{}) },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  return r;
+}
+function payload(d){
+  return JSON.stringify({ app:"my-notes", version:1, sections:d.sections, sectionsUpdated:d.sectionsUpdated||0,
+    notes:[...d.notes].sort((a,b)=>a.id<b.id?-1:1), deleted:d.deleted||{} }, null, 1);
+}
+function merge(local, remote){
+  if(!remote) return local;
+  const deleted = {...(remote.deleted||{})};
+  for(const [id,t] of Object.entries(local.deleted||{})) deleted[id] = Math.max(deleted[id]||0, t);
+  const byId = new Map();
+  for(const n of [...(remote.notes||[]), ...local.notes]){ const o = byId.get(n.id); if(!o || (n.updated||0) > (o.updated||0)) byId.set(n.id, n); }
+  const notes = [...byId.values()].filter(n => !(deleted[n.id] >= (n.updated||0)));
+  const useRemoteSecs = Array.isArray(remote.sections) && remote.sections.length && (remote.sectionsUpdated||0) > (local.sectionsUpdated||0);
+  return { ...local, notes, deleted,
+    sections: useRemoteSecs ? remote.sections : local.sections,
+    sectionsUpdated: Math.max(local.sectionsUpdated||0, remote.sectionsUpdated||0) };
+}
+async function sync(loud){
+  if(!getToken()) return false;
+  if(syncing){ syncAgain = true; return false; }
+  syncing = true; setSync("busy");
+  let ok = false;
+  try{
+    for(let attempt=0; attempt<3; attempt++){
+      const g = await gh("GET");
+      let remote = null, sha;
+      if(g.status === 401 || g.status === 403) throw new Error("key");
+      if(g.status === 404){
+        // 404 = file not made yet, or repo/key can't be seen. Check the repo itself.
+        const rr = await fetch(`https://api.github.com/repos/${DATA_REPO}`, { cache:"no-store", headers:{ Authorization:`Bearer ${getToken()}`, Accept:"application/vnd.github+json" } });
+        if(!rr.ok) throw new Error("repo");
+      } else if(!g.ok) throw new Error("net");
+      else { const j = await g.json(); sha = j.sha; try{ remote = JSON.parse(fromB64(j.content||"")); }catch{ remote = null; } }
+      const merged = merge(db, remote);
+      merged.lastBackup = db.lastBackup;
+      db = merged;
+      try{ localStorage.setItem(STORE, JSON.stringify(db)); }catch{}
+      const out = payload(db);
+      if(remote && payload({sections:remote.sections||[],sectionsUpdated:remote.sectionsUpdated||0,notes:remote.notes||[],deleted:remote.deleted||{}}) === out){ ok = true; break; }
+      const p = await gh("PUT", { message: "Update notes", content: toB64(out), ...(sha?{sha}:{}) });
+      if(p.ok){ ok = true; break; }
+      if(p.status === 409 || p.status === 422) continue;   // changed elsewhere meanwhile: fetch again and merge
+      if(p.status === 401 || p.status === 403) throw new Error("key-write");
+      throw new Error("net");
+    }
+    if(!ok) throw new Error("net");
+    const t = new Date().toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+    setSync("ok", "Synced at " + t);
+    if(loud) toast("Synced ✓");
+    const v = location.hash.slice(1).split("/")[0];
+    if(v === "s"){ const y = window.scrollY; render(); window.scrollTo(0, y); }
+    else if(v === "" && $("#body")){ homeBody(); }
+  }catch(e){
+    const m = e.message === "key" ? "Key not accepted. Check it, or make a new one."
+      : e.message === "key-write" ? "Key can read but not save. Give it Contents: Read and write."
+      : e.message === "repo" ? `Can't find ${DATA_REPO}. Check the repo exists and the key has access.`
+      : "No internet right now. Will try again.";
+    setSync("bad", m);
+    if(loud) toast(m);
+  }finally{
+    syncing = false;
+    if(syncAgain){ syncAgain = false; syncSoon(); }
+  }
+  return ok;
+}
+document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible") syncSoon(); });
+window.addEventListener("online", syncSoon);
+
 /* ---------- taps ---------- */
 document.addEventListener("click", e => { const g = e.target.closest("[data-go]"); if(g){ e.preventDefault(); go(g.dataset.go); } });
 
 render();
+syncSoon();
 if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
 </body>
