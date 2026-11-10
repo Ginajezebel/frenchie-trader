@@ -284,9 +284,8 @@ function homeBody(){
 }
 function noteCard(n, q, showSec){
   const s = sec(n.section);
-  const url = findUrl(n.body) || findUrl(n.title);
   return `<div class="note"><button class="noteopen" data-go="#edit/${encodeURIComponent(n.id)}" aria-label="Edit ${esc(n.title||"note")}"><b>${hl(n.title || "Untitled", q)}</b>${n.body ? `<p>${hl(snippet(n.body,q), q)}</p>` : ""}${showSec ? `<small>${emHTML(s.em)} ${esc(s.name)} · ${when(n.updated)}</small>` : ""}</button>
-    <div class="acts"><button class="act" data-copy="${esc(n.id)}">${ICON.copy} Copy</button>${url ? `<a class="act" href="${esc(url)}" target="_blank" rel="noopener">${ICON.open} Open</a>` : ""}</div></div>`;
+    <div class="acts"><button class="act" data-copy="${esc(n.id)}">${ICON.copy} Copy</button></div></div>`;
 }
 
 function findUrl(t){
