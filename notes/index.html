@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>My Notes</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="My Notes">
+<meta name="robots" content="noindex">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+<style>
+/* One phone column, big text. Notes live only in this phone's storage; nothing is ever sent anywhere. */
+:root{
+  --bg:#F4F6FB; --card:#FFFFFF; --ink:#111733; --ink2:#4A5277; --muted:#767E9F; --line:#DDE2EF; --chip:#EAEEF9;
+  --blue:#2F5BFF; --blueInk:#FFFFFF; --red:#D92D45; --green:#00935F;
+  --shadow:0 1px 2px rgba(20,30,80,.06),0 8px 24px rgba(20,30,80,.06);
+  --font:-apple-system,"SF Pro Text",system-ui,"Segoe UI",sans-serif;
+  --round:ui-rounded,"SF Pro Rounded",-apple-system,system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0A0F22; --card:#141B36; --ink:#F2F4FF; --ink2:#B7BEDB; --muted:#8890B0; --line:#262F52; --chip:#1C2548;
+  --blue:#7C97FF; --blueInk:#0A0F22; --red:#FF6B7F; --green:#35DE9C; --shadow:0 1px 2px rgba(0,0,0,.35); color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0A0F22; --card:#141B36; --ink:#F2F4FF; --ink2:#B7BEDB; --muted:#8890B0; --line:#262F52; --chip:#1C2548;
+  --blue:#7C97FF; --blueInk:#0A0F22; --red:#FF6B7F; --green:#35DE9C; --shadow:0 1px 2px rgba(0,0,0,.35); color-scheme:dark }
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:20px;line-height:1.45;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:560px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 8px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 120px) max(16px,env(safe-area-inset-left,0px))}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.hide{display:none!important}
+
+/* top */
+.top{display:flex;align-items:center;gap:12px;padding:10px 0 14px}
+.top h1{margin:0;font-family:var(--round);font-size:32px;font-weight:800;letter-spacing:-.01em;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iconbtn{border:0;background:var(--card);box-shadow:var(--shadow);min-width:52px;height:52px;border-radius:16px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 14px;font-weight:700;font-size:18px;color:var(--ink)}
+.iconbtn svg{width:24px;height:24px}
+
+/* search */
+.search{position:relative;margin-bottom:18px}
+.search input{width:100%;height:60px;border:2px solid var(--line);background:var(--card);border-radius:18px;padding:0 52px 0 52px;font-size:20px;outline:none;-webkit-appearance:none}
+.search input:focus{border-color:var(--blue)}
+.search input::-webkit-search-cancel-button{display:none;-webkit-appearance:none}
+.search svg{position:absolute;left:16px;top:18px;width:24px;height:24px;color:var(--muted);pointer-events:none}
+.search .clear{position:absolute;right:8px;top:8px;width:44px;height:44px;border:0;background:var(--chip);border-radius:12px;font-size:22px;color:var(--ink2)}
+
+/* section grid */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tile{border:0;background:var(--card);box-shadow:var(--shadow);border-radius:20px;padding:18px 16px;text-align:left;display:flex;flex-direction:column;gap:6px;min-height:118px}
+.tile .em{font-size:34px;line-height:1}
+.tile b{font-size:21px;font-weight:700;line-height:1.2;overflow-wrap:anywhere}
+.tile span{font-size:16px;color:var(--muted)}
+
+/* list */
+.list{display:flex;flex-direction:column;gap:10px}
+.note{border:0;background:var(--card);box-shadow:var(--shadow);border-radius:18px;padding:16px 18px;text-align:left;display:flex;flex-direction:column;gap:4px;width:100%}
+.note b{font-size:21px;font-weight:700;overflow-wrap:anywhere}
+.note p{margin:0;color:var(--ink2);font-size:18px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.note small{font-size:15px;color:var(--muted)}
+mark{background:#FFE066;color:#111733;border-radius:4px;padding:0 2px}
+.empty{text-align:center;color:var(--muted);padding:40px 10px;font-size:19px}
+.label{font-size:16px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:22px 4px 10px}
+
+/* big add button */
+.fab{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 18px);border:0;background:var(--blue);color:var(--blueInk);font-size:22px;font-weight:800;height:64px;padding:0 34px;border-radius:999px;box-shadow:0 10px 30px rgba(47,91,255,.35);display:flex;align-items:center;gap:10px;z-index:20;white-space:nowrap}
+.fab svg{width:26px;height:26px}
+
+/* forms */
+.field{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.field > span{font-size:17px;font-weight:700;color:var(--ink2)}
+.field input,.field textarea,.field select{width:100%;border:2px solid var(--line);background:var(--card);border-radius:16px;padding:14px 16px;font-size:20px;outline:none;-webkit-appearance:none}
+.field select{height:60px;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 26px) 26px,calc(100% - 18px) 26px;background-size:8px 8px;background-repeat:no-repeat;padding-right:44px}
+.field textarea{min-height:42vh;resize:vertical;line-height:1.5}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--blue)}
+.btn{border:0;width:100%;height:62px;border-radius:18px;font-size:21px;font-weight:800;background:var(--blue);color:var(--blueInk);margin-top:6px}
+.btn.soft{background:var(--chip);color:var(--ink)}
+.btn.danger{background:transparent;color:var(--red);border:2px solid var(--line)}
+.row{display:flex;gap:10px}
+.row .btn{flex:1}
+.hint{font-size:16px;color:var(--muted);margin:6px 4px 0}
+.meta{font-size:16px;color:var(--muted);margin:0 4px 14px}
+
+/* settings */
+.card{background:var(--card);box-shadow:var(--shadow);border-radius:20px;padding:18px;margin-bottom:14px}
+.card h2{margin:0 0 6px;font-size:22px}
+.card p{margin:0 0 12px;color:var(--ink2);font-size:18px}
+.secrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.secrow:first-of-type{border-top:0}
+.secrow .em{font-size:28px;width:40px;text-align:center}
+.secrow b{flex:1;font-size:20px;font-weight:600;overflow-wrap:anywhere}
+.small{border:0;background:var(--chip);border-radius:12px;height:44px;padding:0 14px;font-size:17px;font-weight:700}
+.small.red{color:var(--red)}
+.pick{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.pick button{border:2px solid var(--line);background:var(--card);border-radius:14px;padding:8px 14px;font-size:18px;font-weight:600}
+
+/* sheet (confirm) */
+.veil{position:fixed;inset:0;background:rgba(5,8,20,.45);z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--card);width:100%;max-width:560px;border-radius:26px 26px 0 0;padding:24px 18px calc(env(safe-area-inset-bottom,0px) + 20px)}
+.sheet h3{margin:0 0 8px;font-size:24px}
+.sheet p{margin:0 0 16px;color:var(--ink2);font-size:19px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 14px);background:var(--ink);color:var(--bg);padding:14px 22px;border-radius:999px;font-weight:700;font-size:18px;z-index:60;box-shadow:var(--shadow);max-width:90vw;text-align:center}
+.banner{background:var(--chip);border-radius:16px;padding:14px 16px;font-size:17px;color:var(--ink2);margin-bottom:16px;display:flex;gap:10px;align-items:center}
+.banner button{margin-left:auto;flex:none}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+"use strict";
+const STORE = "mynotes_v1";
+const DEFAULT_SECTIONS = [
+  ["car","🚗","Car"],["home","🏠","Home"],["health","🩺","Health"],["trading","📈","Trading"],
+  ["money","💵","Money & Bills"],["family","👨‍👩‍👧","Family & Friends"],["pets","🐶","Pets"],
+  ["work","💼","Work"],["travel","✈️","Travel"],["shopping","🛒","Shopping & Sizes"],
+  ["ideas","💡","Ideas & To-do"],["other","📁","Other"]
+];
+const EMOJIS = ["📁","🚗","🏠","🩺","📈","💵","👨‍👩‍👧","🐶","💼","✈️","🛒","💡","🎓","⚽","🍳","🎁","🔧","📱","⛪","🌱"];
+
+/* ---------- storage ---------- */
+function load(){
+  try{ const d = JSON.parse(localStorage.getItem(STORE)); if(d && Array.isArray(d.notes) && Array.isArray(d.sections)) return d; }catch{}
+  return { sections: DEFAULT_SECTIONS.map(([id,em,name])=>({id,em,name})), notes: [], lastBackup: 0 };
+}
+let db = load();
+function save(){
+  try{ localStorage.setItem(STORE, JSON.stringify(db)); return true; }
+  catch{ toast("Could not save. Phone storage may be full."); return false; }
+}
+try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch{}
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const sec = id => db.sections.find(s => s.id === id) || db.sections.find(s => s.id === "other") || db.sections[0];
+const notesIn = id => db.notes.filter(n => n.section === id).sort((a,b)=>b.updated-a.updated);
+function when(t){
+  const d = new Date(t), now = new Date();
+  const days = Math.floor((new Date(now.toDateString()) - new Date(d.toDateString()))/864e5);
+  if(days === 0) return "Today";
+  if(days === 1) return "Yesterday";
+  return d.toLocaleDateString(undefined,{month:"short",day:"numeric",year: d.getFullYear()===now.getFullYear()?undefined:"numeric"});
+}
+function hl(text, q){
+  const t = esc(text); if(!q) return t;
+  const re = new RegExp("(" + q.trim().split(/\s+/).map(w=>esc(w).replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|") + ")","gi");
+  return t.replace(re,"<mark>$1</mark>");
+}
+function snippet(body, q){
+  const b = body.replace(/\s+/g," ").trim();
+  if(!q) return b.slice(0,160);
+  const i = b.toLowerCase().indexOf(q.trim().split(/\s+/)[0].toLowerCase());
+  let start = Math.max(0, i - 40);
+  if(start > 0){ const sp = b.indexOf(" ", start); if(sp > -1 && sp < i) start = sp + 1; }
+  return (start>0?"… ":"") + b.slice(start, start+160);
+}
+let toastTimer;
+function toast(msg){
+  let t = $(".toast"); if(!t){ t = document.createElement("div"); t.className="toast"; t.setAttribute("role","status"); document.body.appendChild(t); }
+  t.textContent = msg; t.classList.remove("hide"); clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.add("hide"), 2200);
+}
+function ask(title, text, yesLabel, onYes){
+  const v = document.createElement("div"); v.className = "veil";
+  v.innerHTML = `<div class="sheet" role="dialog" aria-modal="true"><h3>${esc(title)}</h3><p>${esc(text)}</p>
+    <div class="row"><button class="btn soft" data-no>Cancel</button><button class="btn" style="background:var(--red);color:#fff" data-yes>${esc(yesLabel)}</button></div></div>`;
+  v.addEventListener("click", e => { if(e.target===v || e.target.closest("[data-no]")) v.remove(); if(e.target.closest("[data-yes]")){ v.remove(); onYes(); } });
+  document.body.appendChild(v);
+}
+const ICON = {
+  search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+  plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+  gear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>'
+};
+
+/* ---------- routing (hash so the iPhone back swipe works) ---------- */
+let query = "";
+function go(h){ if(location.hash === h) render(); else location.hash = h; }
+window.addEventListener("hashchange", render);
+
+function render(){
+  const h = location.hash.slice(1);
+  const [view, arg] = h.split("/");
+  window.scrollTo(0,0);
+  if(view === "s" && arg) return viewSection(decodeURIComponent(arg));
+  if(view === "edit") return viewEdit(arg ? decodeURIComponent(arg) : null);
+  if(view === "new") return viewEdit(null, arg ? decodeURIComponent(arg) : null);
+  if(view === "settings") return viewSettings();
+  return viewHome();
+}
+
+/* ---------- home ---------- */
+function viewHome(){
+  const days = db.lastBackup ? Math.floor((Date.now()-db.lastBackup)/864e5) : null;
+  const needBackup = db.notes.length >= 3 && (days === null || days >= 14);
+  $("#app").innerHTML = `
+    <div class="top"><h1>My Notes</h1><button class="iconbtn" aria-label="Settings and backup" data-go="#settings">${ICON.gear}</button></div>
+    ${needBackup ? `<div class="banner">💾 ${days===null ? "Save a backup of your notes." : `Last backup ${days} days ago.`}<button class="small" data-go="#settings">Back up</button></div>` : ""}
+    <div class="search">${ICON.search}<input id="q" type="search" placeholder="Search all notes" autocomplete="off" autocorrect="off" enterkeyhint="search" value="${esc(query)}" aria-label="Search all notes"><button class="clear ${query?"":"hide"}" aria-label="Clear search">×</button></div>
+    <div id="body"></div>
+    <button class="fab" data-go="#new">${ICON.plus} New note</button>`;
+  const q = $("#q");
+  q.addEventListener("input", () => { query = q.value; $(".search .clear").classList.toggle("hide", !query); homeBody(); });
+  $(".search .clear").addEventListener("click", () => { query = ""; q.value = ""; $(".search .clear").classList.add("hide"); homeBody(); q.focus(); });
+  homeBody();
+}
+function homeBody(){
+  const body = $("#body"); const q = query.trim().toLowerCase();
+  if(q){
+    const words = q.split(/\s+/);
+    const hits = db.notes.filter(n => { const t = (n.title+" "+n.body+" "+sec(n.section).name).toLowerCase(); return words.every(w => t.includes(w)); })
+                         .sort((a,b)=>b.updated-a.updated);
+    body.innerHTML = hits.length
+      ? `<div class="label">${hits.length} found</div><div class="list">${hits.map(n => noteCard(n, query, true)).join("")}</div>`
+      : `<div class="empty">No notes match “${esc(query)}”.</div>`;
+    return;
+  }
+  body.innerHTML = `<div class="grid">${db.sections.map(s => {
+    const c = db.notes.filter(n=>n.section===s.id).length;
+    return `<button class="tile" data-go="#s/${encodeURIComponent(s.id)}"><span class="em">${s.em}</span><b>${esc(s.name)}</b><span>${c ? c + (c===1?" note":" notes") : "Empty"}</span></button>`;
+  }).join("")}</div>
+  ${db.notes.length ? `<div class="label">Recent</div><div class="list">${[...db.notes].sort((a,b)=>b.updated-a.updated).slice(0,3).map(n=>noteCard(n,"",true)).join("")}</div>` : ""}`;
+}
+function noteCard(n, q, showSec){
+  const s = sec(n.section);
+  return `<button class="note" data-go="#edit/${encodeURIComponent(n.id)}"><b>${hl(n.title || "Untitled", q)}</b>${n.body ? `<p>${hl(snippet(n.body,q), q)}</p>` : ""}<small>${showSec ? s.em+" "+esc(s.name)+" · " : ""}${when(n.updated)}</small></button>`;
+}
+
+/* ---------- section ---------- */
+function viewSection(id){
+  const s = db.sections.find(x=>x.id===id); if(!s) return go("#");
+  const list = notesIn(id);
+  $("#app").innerHTML = `
+    <div class="top"><button class="iconbtn" aria-label="Back" data-go="#">${ICON.back}</button><h1>${s.em} ${esc(s.name)}</h1></div>
+    ${list.length ? `<div class="list">${list.map(n=>noteCard(n,"",false)).join("")}</div>` : `<div class="empty">No notes here yet.<br>Tap <b>New note</b> to add one.</div>`}
+    <button class="fab" data-go="#new/${encodeURIComponent(id)}">${ICON.plus} New note</button>`;
+}
+
+/* ---------- add / edit ---------- */
+function viewEdit(id, presetSection){
+  const n = id ? db.notes.find(x=>x.id===id) : null;
+  if(id && !n) return go("#");
+  const secId = n ? n.section : (presetSection || "other");
+  const backTo = "#s/" + encodeURIComponent(secId);
+  $("#app").innerHTML = `
+    <div class="top"><button class="iconbtn" aria-label="Back" id="back">${ICON.back}</button><h1>${n ? "Edit note" : "New note"}</h1></div>
+    <label class="field"><span>Section</span><select id="f-sec">${db.sections.map(s=>`<option value="${esc(s.id)}" ${s.id===secId?"selected":""}>${s.em} ${esc(s.name)}</option>`).join("")}</select></label>
+    <label class="field"><span>Title</span><input id="f-title" type="text" placeholder="e.g. Oil change" value="${n?esc(n.title):""}" enterkeyhint="next"></label>
+    <label class="field"><span>Note</span><textarea id="f-body" placeholder="Write anything here…">${n?esc(n.body):""}</textarea></label>
+    ${n ? `<p class="meta">Last changed ${when(n.updated)}</p>` : ""}
+    <button class="btn" id="f-save">Save</button>
+    ${n ? `<button class="btn danger" id="f-del" style="margin-top:14px">Delete note</button>` : ""}
+    <p class="hint">Don’t save passwords or account numbers here.</p>`;
+  const dirty = () => {
+    const t = $("#f-title").value, b = $("#f-body").value, s = $("#f-sec").value;
+    return n ? (t!==n.title || b!==n.body || s!==n.section) : (t.trim() || b.trim());
+  };
+  $("#back").addEventListener("click", () => {
+    if(dirty()) ask("Leave without saving?", "Your changes will be lost.", "Leave", () => go(n ? backTo : "#"));
+    else history.length > 1 ? history.back() : go("#");
+  });
+  if(!n) setTimeout(()=>$("#f-title").focus(), 50);
+  $("#f-save").addEventListener("click", () => {
+    const title = $("#f-title").value.trim(), body = $("#f-body").value.replace(/\s+$/,""), section = $("#f-sec").value;
+    if(!title && !body.trim()){ toast("Type a title or a note first."); return; }
+    if(n){ Object.assign(n, {title, body, section, updated: Date.now()}); }
+    else db.notes.push({id: uid(), title, body, section, created: Date.now(), updated: Date.now()});
+    if(save()){ toast("Saved ✓"); history.replaceState(null,"","#s/"+encodeURIComponent(section)); render(); }
+  });
+  if(n) $("#f-del").addEventListener("click", () => ask("Delete this note?", "“"+(n.title||"Untitled")+"” will be gone for good.", "Delete", () => {
+    db.notes = db.notes.filter(x=>x.id!==n.id); save(); toast("Deleted"); history.replaceState(null,"",backTo); render();
+  }));
+}
+
+/* ---------- settings: sections + backup ---------- */
+function viewSettings(){
+  const last = db.lastBackup ? when(db.lastBackup) : "Never";
+  $("#app").innerHTML = `
+    <div class="top"><button class="iconbtn" aria-label="Back" data-go="#">${ICON.back}</button><h1>Settings</h1></div>
+    <div class="card">
+      <h2>💾 Backup</h2>
+      <p>Your notes are saved only on this phone. Save a backup file now and then (to Files or iCloud Drive) so you never lose them.</p>
+      <p style="font-size:16px;color:var(--muted)">Last backup: <b>${last}</b> · ${db.notes.length} notes</p>
+      <button class="btn" id="exp">Save backup file</button>
+      <button class="btn soft" id="imp" style="margin-top:10px">Restore from backup</button>
+      <input type="file" id="impfile" accept=".json,application/json,text/plain" class="hide">
+    </div>
+    <div class="card">
+      <h2>Sections</h2>
+      <div id="secs">${db.sections.map(s=>`<div class="secrow"><span class="em">${s.em}</span><b>${esc(s.name)}</b>
+        <button class="small" data-ren="${esc(s.id)}">Rename</button>${s.id==="other"?"":`<button class="small red" data-del="${esc(s.id)}" aria-label="Remove ${esc(s.name)}">✕</button>`}</div>`).join("")}</div>
+    </div>
+    <div class="card">
+      <h2>Add a section</h2>
+      <div class="pick" id="empick">${EMOJIS.map((e,i)=>`<button data-em="${e}" ${i===0?'style="border-color:var(--blue)"':""}>${e}</button>`).join("")}</div>
+      <label class="field" style="margin:8px 0 0"><input id="newsec" type="text" placeholder="Section name" enterkeyhint="done"></label>
+      <button class="btn" id="addsec">Add section</button>
+    </div>`;
+  let pickedEm = EMOJIS[0];
+  $("#empick").addEventListener("click", e => { const b = e.target.closest("[data-em]"); if(!b) return; pickedEm = b.dataset.em;
+    $("#empick").querySelectorAll("button").forEach(x=>x.style.borderColor = x===b ? "var(--blue)" : ""); });
+  $("#addsec").addEventListener("click", () => {
+    const name = $("#newsec").value.trim(); if(!name){ toast("Type a section name."); return; }
+    const other = db.sections.findIndex(s=>s.id==="other");
+    const s = {id: uid(), em: pickedEm, name};
+    other >= 0 ? db.sections.splice(other,0,s) : db.sections.push(s);
+    save(); toast("Added “"+name+"”"); viewSettings();
+  });
+  $("#secs").addEventListener("click", e => {
+    const r = e.target.closest("[data-ren]"), d = e.target.closest("[data-del]");
+    if(r){ const s = sec(r.dataset.ren); const row = r.closest(".secrow");
+      row.innerHTML = `<span class="em">${s.em}</span><input type="text" value="${esc(s.name)}" style="flex:1;min-width:0;border:2px solid var(--blue);border-radius:12px;padding:8px 10px;font-size:19px;background:var(--card)"><button class="small">Done</button>`;
+      const inp = row.querySelector("input"); inp.focus(); inp.select();
+      const done = () => { const v = inp.value.trim(); if(v){ s.name = v; save(); } viewSettings(); };
+      row.querySelector("button").addEventListener("click", done); inp.addEventListener("keydown", ev => { if(ev.key==="Enter") done(); });
+    }
+    if(d){ const s = sec(d.dataset.del); const c = db.notes.filter(n=>n.section===s.id).length;
+      ask("Remove “"+s.name+"”?", c ? `Its ${c} note${c===1?"":"s"} will move to Other.` : "It has no notes.", "Remove", () => {
+        db.notes.forEach(n => { if(n.section===s.id) n.section = "other"; });
+        db.sections = db.sections.filter(x=>x.id!==s.id);
+        if(!db.sections.some(x=>x.id==="other")) db.sections.push({id:"other",em:"📁",name:"Other"});
+        save(); viewSettings();
+      });
+    }
+  });
+  $("#exp").addEventListener("click", exportBackup);
+  $("#imp").addEventListener("click", () => $("#impfile").click());
+  $("#impfile").addEventListener("change", importBackup);
+}
+async function exportBackup(){
+  const stamp = new Date().toISOString().slice(0,10);
+  const name = `my-notes-backup-${stamp}.json`;
+  const data = JSON.stringify({app:"my-notes", version:1, saved:new Date().toISOString(), sections:db.sections, notes:db.notes}, null, 2);
+  const file = new File([data], name, {type:"application/json"});
+  const mark = () => { db.lastBackup = Date.now(); save(); viewSettings(); toast("Backup saved ✓"); };
+  try{
+    if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:name}); mark(); return; }
+  }catch(e){ if(e && e.name === "AbortError") return; }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(file); a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1000); mark();
+}
+function importBackup(e){
+  const f = e.target.files && e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    let d; try{ d = JSON.parse(r.result); }catch{ toast("That file isn’t a notes backup."); return; }
+    if(!d || !Array.isArray(d.notes) || !Array.isArray(d.sections)){ toast("That file isn’t a notes backup."); return; }
+    ask("Restore this backup?", `It has ${d.notes.length} notes. Notes on this phone that aren’t in the file stay; matching notes are replaced.`, "Restore", () => {
+      d.sections.forEach(s => { if(s && s.id && !db.sections.some(x=>x.id===s.id)) db.sections.splice(Math.max(0,db.sections.length-1),0,{id:String(s.id),em:String(s.em||"📁"),name:String(s.name||"Section")}); });
+      d.notes.forEach(n => { if(!n || !n.id) return; const clean = {id:String(n.id), title:String(n.title||""), body:String(n.body||""), section:String(n.section||"other"), created:+n.created||Date.now(), updated:+n.updated||Date.now()};
+        const i = db.notes.findIndex(x=>x.id===clean.id); i>=0 ? db.notes[i] = clean : db.notes.push(clean); });
+      save(); toast("Restored ✓"); go("#");
+    });
+  };
+  r.readAsText(f);
+}
+
+/* ---------- taps ---------- */
+document.addEventListener("click", e => { const g = e.target.closest("[data-go]"); if(g){ e.preventDefault(); go(g.dataset.go); } });
+
+render();
+if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
