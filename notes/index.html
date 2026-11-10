@@ -9,8 +9,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="My Notes">
 <meta name="robots" content="noindex">
-<link rel="apple-touch-icon" href="icon-180.png">
-<link rel="icon" href="icon-180.png">
+<link rel="apple-touch-icon" href="phoenix-180.png">
+<link rel="icon" href="phoenix-180.png">
 <link rel="manifest" href="manifest.json">
 <style>
 /* One phone column, big text. Notes live only in this phone's storage; nothing is ever sent anywhere. */
@@ -270,7 +270,7 @@ function viewEdit(id, presetSection){
     if(dirty()) ask("Leave without saving?", "Your changes will be lost.", "Leave", () => go(n ? backTo : "#"));
     else history.length > 1 ? history.back() : go("#");
   });
-  if(!n) setTimeout(()=>$("#f-title").focus(), 50);
+  if(!n) setTimeout(()=>{ const t = $("#f-title"); if(t) t.focus(); }, 50);
   $("#f-save").addEventListener("click", () => {
     const title = $("#f-title").value.trim(), body = $("#f-body").value.replace(/\s+$/,""), section = $("#f-sec").value;
     if(!title && !body.trim()){ toast("Type a title or a note first."); return; }
@@ -294,6 +294,7 @@ function viewSettings(){
       ${getToken() ? `<p>Notes are saved to your private <b>${esc(DATA_REPO)}</b> repo, so they show on every phone and computer you connect.</p>
         <p style="font-size:16px;color:var(--muted)">Status: <b>${esc(syncMsg || "Not synced yet")}</b></p>
         <button class="btn" id="syncnow">Sync now</button>
+        <button class="btn soft" id="copykey" style="margin-top:10px">Copy my key</button>
         <button class="btn danger" id="unlink" style="margin-top:10px">Disconnect this device</button>`
       : `<p>Paste your GitHub key once to keep notes in your private <b>${esc(DATA_REPO)}</b> repo and see them on your computer too.</p>
         <label class="field" style="margin:0"><input id="tok" type="password" placeholder="Paste key (github_pat_…)" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
@@ -347,6 +348,10 @@ function viewSettings(){
     }
   });
   if($("#syncnow")) $("#syncnow").addEventListener("click", async () => { await sync(true); viewSettings(); });
+  if($("#copykey")) $("#copykey").addEventListener("click", async () => {
+    try{ await navigator.clipboard.writeText(getToken()); toast("Key copied ✓"); }
+    catch{ toast("Couldn't copy. Try again."); }
+  });
   if($("#unlink")) $("#unlink").addEventListener("click", () => ask("Disconnect this device?", "Notes stay on this device and in GitHub. This device just stops syncing.", "Disconnect", () => { setToken(""); syncMsg = ""; viewSettings(); }));
   if($("#link")) $("#link").addEventListener("click", async () => {
     const t = $("#tok").value.trim(); if(!t){ toast("Paste your key first."); return; }
