@@ -119,6 +119,14 @@ mark{background:#FFE066;color:#111733;border-radius:4px;padding:0 2px}
 .sub button{border:0;background:none;padding:0;font:inherit;color:inherit}
 .feature{border:1px solid #F6DCC4;background:linear-gradient(135deg,#FFF7EE,#FFEFE2);border-radius:24px;padding:16px 18px;display:flex;align-items:center;gap:16px;width:100%;text-align:left;margin-bottom:12px;color:#141A33}
 .feature .fimg{width:76px;height:76px;border-radius:20px;background:#fff;padding:6px;box-shadow:0 4px 14px rgba(200,90,20,.15);flex:none;object-fit:contain}
+.feature .fimg.wide{width:124px;padding:0;object-fit:cover}
+.subtiles{display:flex;flex-direction:column;gap:12px}
+.subtiles .tile{flex-direction:row;align-items:center;min-height:0;padding:18px}
+.subtiles .tile b{font-size:22px}
+.subtiles .tile svg.chev{margin-left:auto;width:22px;height:22px;color:var(--muted);flex:none}
+.note.write b{font-size:21px;color:var(--ink);text-transform:none;letter-spacing:0}
+.note.write p{font-size:20px;font-weight:500;color:var(--ink2);white-space:pre-wrap;display:block;-webkit-line-clamp:unset}
+.note.write .noteopen{padding-bottom:16px}
 .feature b{font-size:24px;display:block;line-height:1.2} .feature span{color:#9A5B2B;font-size:17px}
 .feature svg{margin-left:auto;width:22px;height:22px;color:#C08A5E;flex:none}
 .badge{width:48px;height:48px;border-radius:15px;display:grid;place-items:center;flex:none;font-size:26px}
@@ -159,10 +167,13 @@ try{ navigator.storage && navigator.storage.persist && navigator.storage.persist
 
 /* ---------- helpers ---------- */
 const PHOENIX = "icon-phoenix-180.png";
-const PICS = { phoenix: PHOENIX, jaguar: "icon-clever-180.png", sat: "sat-tile.jpg" };
-const VIDS = { sat: "sat-tile.mp4" };
+const PICS = { phoenix: PHOENIX, jaguar: "icon-clever-180.png", sat: "sat-tile.jpg", homework: "homework-tile.jpg" };
+const VIDS = { sat: "sat-tile.mp4", homework: "homework-tile.mp4" };
+const WIDE = { homework: 1 };
+const kids = id => db.sections.filter(s => s.parent === id);
+const isWrite = id => (db.sections.find(s => s.id === id) || {}).kind === "write";
 function emHTML(em){ return PICS[em] ? `<img class="emimg" src="${PICS[em]}" alt="">` : esc(em||""); }
-function emText(em){ return em === "phoenix" ? "🔥" : em === "jaguar" ? "📖" : em === "sat" ? "🛡️" : (em||""); }
+function emText(em){ return em === "phoenix" ? "🔥" : em === "jaguar" ? "📖" : em === "sat" ? "🛡️" : em === "homework" ? "📚" : (em||""); }
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
@@ -276,15 +287,17 @@ function homeBody(){
       : `<div class="empty">Nothing matches “${esc(query)}”.</div>`;
     return;
   }
-  const cnt = id => db.notes.filter(n=>n.section===id).length;
-  const feat = db.sections.filter(s => PICS[s.em]);
-  const rest = db.sections.filter(s => !PICS[s.em]);
-  body.innerHTML = `${feat.map(s => `<button class="feature" data-go="#s/${encodeURIComponent(s.id)}">${VIDS[s.em] ? `<video class="fimg" src="${VIDS[s.em]}" poster="${PICS[s.em]}" autoplay muted loop playsinline disablepictureinpicture aria-hidden="true"></video>` : `<img class="fimg" src="${PICS[s.em]}" alt="">`}<div><b>${esc(s.name)}</b><span>${items(cnt(s.id))}</span></div>${ICON.chev}</button>`).join("")}
+  const cnt = id => db.notes.filter(n => n.section===id || kids(id).some(k => k.id===n.section)).length;
+  const top = db.sections.filter(s => !s.parent);
+  const feat = top.filter(s => PICS[s.em]);
+  const rest = top.filter(s => !PICS[s.em]);
+  body.innerHTML = `${feat.map(s => `<button class="feature" data-go="#s/${encodeURIComponent(s.id)}">${VIDS[s.em] ? `<video class="fimg${WIDE[s.em]?" wide":""}" src="${VIDS[s.em]}" poster="${PICS[s.em]}" autoplay muted loop playsinline disablepictureinpicture aria-hidden="true"></video>` : `<img class="fimg" src="${PICS[s.em]}" alt="">`}<div><b>${esc(s.name)}</b><span>${items(cnt(s.id))}</span></div>${ICON.chev}</button>`).join("")}
   <div class="grid">${rest.map(s => `<button class="tile" data-go="#s/${encodeURIComponent(s.id)}">${badge(s)}<div><b>${esc(s.name)}</b><span class="cnt">${items(cnt(s.id))}</span></div></button>`).join("")}</div>
   ${db.notes.length ? `<div class="label">Recent</div><div class="list">${[...db.notes].sort((a,b)=>b.updated-a.updated).slice(0,3).map(n=>noteCard(n,"",true)).join("")}</div>` : ""}`;
 }
 function noteCard(n, q, showSec){
   const s = sec(n.section);
+  if(s.kind === "write") return `<div class="note write"><button class="noteopen" data-go="#edit/${encodeURIComponent(n.id)}" aria-label="Edit ${esc(n.title||"note")}">${n.title ? `<b>${hl(n.title, q)}</b>` : ""}${n.body ? `<p>${hl(q ? snippet(n.body,q) : n.body, q)}</p>` : ""}${showSec ? `<small>${esc(s.name)} · ${when(n.updated)}</small>` : ""}</button></div>`;
   return `<div class="note"><button class="noteopen" data-go="#edit/${encodeURIComponent(n.id)}" aria-label="Edit ${esc(n.title||"note")}"><b>${hl(n.title || "Untitled", q)}</b>${n.body ? `<p>${hl(snippet(n.body,q), q)}</p>` : ""}${showSec ? `<small>${emHTML(s.em)} ${esc(s.name)} · ${when(n.updated)}</small>` : ""}</button>
     <div class="acts"><button class="act" data-copy="${esc(n.id)}">${ICON.copy} Copy</button></div></div>`;
 }
@@ -308,10 +321,20 @@ document.addEventListener("click", async e => {
 function viewSection(id){
   const s = db.sections.find(x=>x.id===id); if(!s) return go("#");
   const list = notesIn(id);
-  $("#app").innerHTML = `
+  const back = s.parent ? "#s/" + encodeURIComponent(s.parent) : "#";
+  const subs = kids(id);
+  if(subs.length){
+    $("#app").innerHTML = `
     <div class="top"><button class="iconbtn" aria-label="Back" data-go="#">${ICON.back}</button>${badge(s)}<h1>${esc(s.name)}</h1></div>
-    ${list.length ? `<div class="list">${list.map(n=>noteCard(n,"",false)).join("")}</div>` : `<div class="empty">Nothing here yet.<br>Tap <b>Add item</b> to add one.</div>`}
-    <button class="fab" data-go="#new/${encodeURIComponent(id)}">${ICON.plus} Add item</button>`;
+    <div class="subtiles">${subs.map(k => { const c = db.notes.filter(n=>n.section===k.id).length;
+      return `<button class="tile" data-go="#s/${encodeURIComponent(k.id)}">${badge(k)}<div><b>${esc(k.name)}</b><span class="cnt">${items(c)}</span></div><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg></button>`; }).join("")}</div>
+    ${list.length ? `<div class="label">Other items</div><div class="list">${list.map(n=>noteCard(n,"",false)).join("")}</div>` : ""}`;
+    return;
+  }
+  $("#app").innerHTML = `
+    <div class="top"><button class="iconbtn" aria-label="Back" data-go="${back}">${ICON.back}</button>${badge(s)}<h1>${esc(s.name)}</h1></div>
+    ${list.length ? `<div class="list">${list.map(n=>noteCard(n,"",false)).join("")}</div>` : `<div class="empty">Nothing here yet.<br>Tap <b>${s.kind==="write"?"New note":"Add item"}</b> to add one.</div>`}
+    <button class="fab" data-go="#new/${encodeURIComponent(id)}">${ICON.plus} ${s.kind==="write"?"New note":"Add item"}</button>`;
 }
 
 /* ---------- add / edit ---------- */
@@ -322,9 +345,11 @@ function viewEdit(id, presetSection){
   const backTo = "#s/" + encodeURIComponent(secId);
   $("#app").innerHTML = `
     <div class="top"><button class="iconbtn" aria-label="Back" id="back">${ICON.back}</button><h1>${n ? "Edit item" : "New item"}</h1></div>
-    <label class="field"><span>Section</span><select id="f-sec">${db.sections.map(s=>`<option value="${esc(s.id)}" ${s.id===secId?"selected":""}>${esc(emText(s.em))} ${esc(s.name)}</option>`).join("")}</select></label>
-    <label class="field"><span>Label</span><input id="f-title" type="text" placeholder="e.g. Home Wi-Fi" value="${n?esc(n.title):""}" enterkeyhint="next"></label>
-    <label class="field"><span>Info</span><textarea id="f-body" rows="3" placeholder="Password, web address, or anything…" autocapitalize="off" autocorrect="off" spellcheck="false">${n?esc(n.body):""}</textarea></label>
+    <label class="field"><span>Section</span><select id="f-sec">${db.sections.filter(s=>!kids(s.id).length || s.id===secId).map(s=>`<option value="${esc(s.id)}" ${s.id===secId?"selected":""}>${esc(emText(s.em))} ${s.parent ? esc(sec(s.parent).name)+" › " : ""}${esc(s.name)}</option>`).join("")}</select></label>
+    ${isWrite(secId) ? `<label class="field"><span>Title</span><input id="f-title" type="text" placeholder="e.g. Chapter 3 homework" value="${n?esc(n.title):""}" enterkeyhint="next"></label>
+    <label class="field"><span>Notes</span><textarea id="f-body" style="min-height:42vh" placeholder="Write notes or a list…">${n?esc(n.body):""}</textarea></label>`
+    : `<label class="field"><span>Label</span><input id="f-title" type="text" placeholder="e.g. Home Wi-Fi" value="${n?esc(n.title):""}" enterkeyhint="next"></label>
+    <label class="field"><span>Info</span><textarea id="f-body" rows="3" placeholder="Password, web address, or anything…" autocapitalize="off" autocorrect="off" spellcheck="false">${n?esc(n.body):""}</textarea></label>`}
     ${n ? `<p class="meta">Last changed ${when(n.updated)}</p>` : ""}
     <button class="btn" id="f-save">Save</button>
     ${n ? `<button class="btn danger" id="f-del" style="margin-top:14px">Delete item</button>` : ""}
@@ -377,7 +402,7 @@ function viewSettings(){
     </div>
     <div class="card">
       <h2>Sections</h2>
-      <div id="secs">${db.sections.map(s=>`<div class="secrow"><span class="em">${emHTML(s.em)}</span><b>${esc(s.name)}</b>
+      <div id="secs">${db.sections.map(s=>`<div class="secrow"${s.parent?' style="padding-left:28px"':""}><span class="em">${emHTML(s.em)}</span><b>${esc(s.name)}</b>
         <button class="small" data-ren="${esc(s.id)}">Rename</button>${s.id==="other"?"":`<button class="small red" data-del="${esc(s.id)}" aria-label="Remove ${esc(s.name)}">✕</button>`}</div>`).join("")}</div>
     </div>
     <div class="card">
@@ -408,7 +433,9 @@ function viewSettings(){
       ask("Remove “"+s.name+"”?", c ? `Its ${c} note${c===1?"":"s"} will move to Other.` : "It has no notes.", "Remove", () => {
         db.notes.forEach(n => { if(n.section===s.id){ n.section = "other"; n.updated = Date.now(); } });
         db.sectionsUpdated = Date.now();
-        db.sections = db.sections.filter(x=>x.id!==s.id);
+        const gone = [s.id, ...kids(s.id).map(k=>k.id)];
+        db.notes.forEach(n => { if(gone.includes(n.section)){ n.section = "other"; n.updated = Date.now(); } });
+        db.sections = db.sections.filter(x=>!gone.includes(x.id));
         if(!db.sections.some(x=>x.id==="other")) db.sections.push({id:"other",em:"📁",name:"Other"});
         save(); viewSettings();
       });
@@ -448,7 +475,7 @@ function importBackup(e){
     let d; try{ d = JSON.parse(r.result); }catch{ toast("That file isn’t a notes backup."); return; }
     if(!d || !Array.isArray(d.notes) || !Array.isArray(d.sections)){ toast("That file isn’t a notes backup."); return; }
     ask("Restore this backup?", `It has ${d.notes.length} notes. Notes on this phone that aren’t in the file stay; matching notes are replaced.`, "Restore", () => {
-      d.sections.forEach(s => { if(s && s.id && !db.sections.some(x=>x.id===s.id)) db.sections.splice(Math.max(0,db.sections.length-1),0,{id:String(s.id),em:String(s.em||"📁"),name:String(s.name||"Section")}); });
+      d.sections.forEach(s => { if(s && s.id && !db.sections.some(x=>x.id===s.id)) db.sections.splice(Math.max(0,db.sections.length-1),0,{id:String(s.id),em:String(s.em||"📁"),name:String(s.name||"Section"),...(s.parent?{parent:String(s.parent)}:{}),...(s.kind?{kind:String(s.kind)}:{})}); });
       d.notes.forEach(n => { if(!n || !n.id) return; const clean = {id:String(n.id), title:String(n.title||""), body:String(n.body||""), section:String(n.section||"other"), created:+n.created||Date.now(), updated:+n.updated||Date.now()};
         const i = db.notes.findIndex(x=>x.id===clean.id); i>=0 ? db.notes[i] = clean : db.notes.push(clean); });
       db.sectionsUpdated = Date.now(); save(); toast("Restored ✓"); go("#");
@@ -574,6 +601,17 @@ function migrate(){
       let i = db.sections.findIndex(s => s.id === "clever");
       if(i < 0) i = db.sections.findIndex(s => s.id === "huntington");
       db.sections.splice(i + 1, 0, {id:"sat", em:"sat", name:"SAT"});
+    }
+  }
+  if(!db.flags.homework){
+    db.flags.homework = 1; changed = true;
+    if(!db.sections.some(s => s.id === "homework")){
+      let i = ["sat","clever","huntington"].map(id => db.sections.findIndex(s => s.id === id)).find(x => x >= 0);
+      if(i === undefined) i = -1;
+      db.sections.splice(i + 1, 0,
+        {id:"homework", em:"homework", name:"Homework"},
+        {id:"hw-calc", em:"📐", name:"Northcreek Calculus", parent:"homework", kind:"write"},
+        {id:"hw-precalc", em:"✏️", name:"Pre Calculus", parent:"homework", kind:"write"});
     }
   }
   if(!changed) return false;
