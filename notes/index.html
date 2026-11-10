@@ -142,7 +142,7 @@ const DEFAULT_SECTIONS = [
   ["work","💼","Work"],["travel","✈️","Travel"],["shopping","🛒","Shopping & Sizes"],
   ["ideas","💡","Ideas & To-do"],["other","📁","Other"]
 ];
-const EMOJIS = ["phoenix","📁","🚗","🏠","🩺","📈","💵","👨‍👩‍👧","🐶","💼","✈️","🛒","💡","🎓","⚽","🍳","🎁","🔧","📱","⛪","🌱"];
+const EMOJIS = ["phoenix","jaguar","📁","🚗","🏠","🩺","📈","💵","👨‍👩‍👧","🐶","💼","✈️","🛒","💡","🎓","⚽","🍳","🎁","🔧","📱","⛪","🌱"];
 
 /* ---------- storage ---------- */
 function load(){
@@ -159,8 +159,9 @@ try{ navigator.storage && navigator.storage.persist && navigator.storage.persist
 
 /* ---------- helpers ---------- */
 const PHOENIX = "icon-phoenix-180.png";
-function emHTML(em){ return em === "phoenix" ? `<img class="emimg" src="${PHOENIX}" alt="">` : esc(em||""); }
-function emText(em){ return em === "phoenix" ? "🔥" : (em||""); }
+const PICS = { phoenix: PHOENIX, jaguar: "icon-clever-180.png" };
+function emHTML(em){ return PICS[em] ? `<img class="emimg" src="${PICS[em]}" alt="">` : esc(em||""); }
+function emText(em){ return em === "phoenix" ? "🔥" : em === "jaguar" ? "📖" : (em||""); }
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
@@ -275,9 +276,9 @@ function homeBody(){
     return;
   }
   const cnt = id => db.notes.filter(n=>n.section===id).length;
-  const feat = db.sections.filter(s => s.em === "phoenix");
-  const rest = db.sections.filter(s => s.em !== "phoenix");
-  body.innerHTML = `${feat.map(s => `<button class="feature" data-go="#s/${encodeURIComponent(s.id)}"><img class="fimg" src="${PHOENIX}" alt=""><div><b>${esc(s.name)}</b><span>${items(cnt(s.id))}</span></div>${ICON.chev}</button>`).join("")}
+  const feat = db.sections.filter(s => PICS[s.em]);
+  const rest = db.sections.filter(s => !PICS[s.em]);
+  body.innerHTML = `${feat.map(s => `<button class="feature" data-go="#s/${encodeURIComponent(s.id)}"><img class="fimg" src="${PICS[s.em]}" alt=""><div><b>${esc(s.name)}</b><span>${items(cnt(s.id))}</span></div>${ICON.chev}</button>`).join("")}
   <div class="grid">${rest.map(s => `<button class="tile" data-go="#s/${encodeURIComponent(s.id)}">${badge(s)}<div><b>${esc(s.name)}</b><span class="cnt">${items(cnt(s.id))}</span></div></button>`).join("")}</div>
   ${db.notes.length ? `<div class="label">Recent</div><div class="list">${[...db.notes].sort((a,b)=>b.updated-a.updated).slice(0,3).map(n=>noteCard(n,"",true)).join("")}</div>` : ""}`;
 }
@@ -551,12 +552,23 @@ window.addEventListener("online", syncSoon);
 /* ---------- taps ---------- */
 document.addEventListener("click", e => { const g = e.target.closest("[data-go]"); if(g){ e.preventDefault(); go(g.dataset.go); } });
 
-/* one-time: put a Huntington section (phoenix icon) first. Flag is synced so it's added once, and stays gone if removed. */
+/* one-time additions: Huntington (phoenix) first, then Clever (reading jaguar) right under it.
+   Flags are synced, so each is added once across devices and stays gone if removed. */
 function migrate(){
   db.flags = db.flags || {};
-  if(db.flags.huntington) return false;
-  db.flags.huntington = 1;
-  if(!db.sections.some(s => s.id === "huntington")) db.sections.unshift({id:"huntington", em:"phoenix", name:"Huntington"});
+  let changed = false;
+  if(!db.flags.huntington){
+    db.flags.huntington = 1; changed = true;
+    if(!db.sections.some(s => s.id === "huntington")) db.sections.unshift({id:"huntington", em:"phoenix", name:"Huntington"});
+  }
+  if(!db.flags.clever){
+    db.flags.clever = 1; changed = true;
+    if(!db.sections.some(s => s.id === "clever")){
+      const h = db.sections.findIndex(s => s.id === "huntington");
+      db.sections.splice(h + 1, 0, {id:"clever", em:"jaguar", name:"Clever"});
+    }
+  }
+  if(!changed) return false;
   db.sectionsUpdated = Date.now();
   try{ localStorage.setItem(STORE, JSON.stringify(db)); }catch{}
   return true;
