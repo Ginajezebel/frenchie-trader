@@ -291,7 +291,7 @@ async function loadMe() {
   const money = (v) => "$" + v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const st = M.start || { date: days[days.length - 1].date };
   const md = (x) => new Date(x + "T12:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
-  const lastBal = days.find((d) => d.bal)?.bal;
+  const lastBal = st.bal ? Math.round((st.bal + total) * 100) / 100 : null;   // start + all day P&L, so it includes days with no balance screenshot
   const pct = st.bal ? ` (${total >= 0 ? "+" : "−"}${Math.abs(total / st.bal * 100).toFixed(1)}%)` : "";
   if ($("me-total")) $("me-total").innerHTML = `<small>Total profit since ${md(st.date)}</small><b class="num ${cls(total)}">${fmt(total).replace(/(\d)(?=(\d{3})+\.)/g, "$1,")}</b>
     ${st.bal && lastBal ? `<span>Started with ${money(st.bal)} · now ${money(lastBal)}${pct}</span>` : ""}`;
