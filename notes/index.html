@@ -180,7 +180,12 @@ const privLoading = {}, privPick = {};
 function privSrc(em){
   if(!String(em||"").startsWith("priv:")) return "";
   const list = em.slice(5).split("|");               // several pictures: a random one each time the app opens
-  if(!(em in privPick)) privPick[em] = list[Math.floor(Math.random() * list.length)];
+  if(!(em in privPick)){
+    let last = ""; try{ last = JSON.parse(localStorage.getItem("mynotes_lastpick") || "{}")[em] || ""; }catch{}
+    const pool = list.length > 1 ? list.filter(x => x !== last) : list;
+    privPick[em] = pool[Math.floor(Math.random() * pool.length)];
+  }
+  try{ localStorage.setItem("mynotes_lastpick", JSON.stringify(privPick)); }catch{}
   const path = privPick[em], k = "mynotes_pic:" + path;
   try{ const c = localStorage.getItem(k); if(c) return c; }catch{}
   if(getToken() && !privLoading[path]){
@@ -270,7 +275,17 @@ const items = c => c ? c + (c===1 ? " item" : " items") : "Empty";
 /* ---------- routing (hash so the iPhone back swipe works) ---------- */
 let query = "";
 function go(h){ if(location.hash === h) render(); else location.hash = h; }
-window.addEventListener("hashchange", render);
+window.addEventListener("hashchange", () => {
+  // opening a page with picture tiles (like Homework) picks new pictures, never the same one twice in a row
+  const m = location.hash.match(/^#s\/([^/]+)$/);
+  if(m){ const id = decodeURIComponent(m[1]);
+    kids(id).forEach(k => { const em = k.em || ""; if(!em.startsWith("priv:")) return;
+      const list = em.slice(5).split("|"), cur = privPick[em];
+      const pool = list.length > 1 ? list.filter(x => x !== cur) : list;
+      privPick[em] = pool[Math.floor(Math.random() * pool.length)]; });
+  }
+  render();
+});
 
 function render(){
   const h = location.hash.slice(1);
