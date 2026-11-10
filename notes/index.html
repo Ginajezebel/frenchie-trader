@@ -175,8 +175,26 @@ const VIDS = { sat: "sat-tile.mp4", homework: "homework-tile.mp4" };
 const WIDE = { homework: 1 };
 const kids = id => db.sections.filter(s => s.parent === id);
 const isWrite = id => (db.sections.find(s => s.id === id) || {}).kind === "write";
-function emHTML(em){ return PICS[em] ? `<img class="emimg" src="${PICS[em]}" alt="">` : esc(em||""); }
-function emText(em){ return em === "phoenix" ? "🔥" : em === "jaguar" ? "📖" : em === "sat" ? "🛡️" : em === "homework" ? "📚" : em === "jag-calc" ? "📐" : em === "jag-pre" ? "✏️" : (em||""); }
+/* private pictures live in the private notes repo ("priv:<path>"), loaded with the key and kept on this device */
+const privLoading = {};
+function privSrc(em){
+  if(!String(em||"").startsWith("priv:")) return "";
+  const path = em.slice(5), k = "mynotes_pic:" + path;
+  try{ const c = localStorage.getItem(k); if(c) return c; }catch{}
+  if(getToken() && !privLoading[path]){
+    privLoading[path] = 1;
+    fetch(`https://api.github.com/repos/${DATA_REPO}/contents/${path.split("/").map(encodeURIComponent).join("/")}`, { cache:"no-store",
+      headers:{ Authorization:`Bearer ${getToken()}`, Accept:"application/vnd.github.raw+json", "X-GitHub-Api-Version":"2022-11-28" } })
+      .then(r => r.ok ? r.blob() : Promise.reject())
+      .then(b => new Promise(res => { const f = new FileReader(); f.onload = () => res(f.result); f.readAsDataURL(b); }))
+      .then(url => { try{ localStorage.setItem(k, url); }catch{} const v = location.hash.slice(1).split("/")[0]; if(v !== "edit" && v !== "new" && v !== "settings") render(); })
+      .catch(() => { setTimeout(() => { delete privLoading[path]; }, 30000); });
+  }
+  return "";
+}
+function pic(em){ return PICS[em] || privSrc(em); }
+function emHTML(em){ const p = pic(em); return p ? `<img class="emimg" src="${p}" alt="">` : String(em||"").startsWith("priv:") ? "✏️" : esc(em||""); }
+function emText(em){ return em === "phoenix" ? "🔥" : em === "jaguar" ? "📖" : em === "sat" ? "🛡️" : em === "homework" ? "📚" : em === "jag-calc" ? "📐" : em === "jag-pre" || String(em).startsWith("priv:") ? "✏️" : (em||""); }
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
@@ -292,9 +310,9 @@ function homeBody(){
   }
   const cnt = id => db.notes.filter(n => n.section===id || kids(id).some(k => k.id===n.section)).length;
   const top = db.sections.filter(s => !s.parent);
-  const feat = top.filter(s => PICS[s.em]);
-  const rest = top.filter(s => !PICS[s.em]);
-  body.innerHTML = `${feat.map(s => `<button class="feature" data-go="#s/${encodeURIComponent(s.id)}">${VIDS[s.em] ? `<video class="fimg${WIDE[s.em]?" wide":""}" src="${VIDS[s.em]}" poster="${PICS[s.em]}" autoplay muted loop playsinline disablepictureinpicture aria-hidden="true"></video>` : `<img class="fimg" src="${PICS[s.em]}" alt="">`}<div><b>${esc(s.name)}</b><span>${items(cnt(s.id))}</span></div>${ICON.chev}</button>`).join("")}
+  const feat = top.filter(s => pic(s.em));
+  const rest = top.filter(s => !pic(s.em));
+  body.innerHTML = `${feat.map(s => `<button class="feature" data-go="#s/${encodeURIComponent(s.id)}">${VIDS[s.em] ? `<video class="fimg${WIDE[s.em]?" wide":""}" src="${VIDS[s.em]}" poster="${pic(s.em)}" autoplay muted loop playsinline disablepictureinpicture aria-hidden="true"></video>` : `<img class="fimg" src="${pic(s.em)}" alt="">`}<div><b>${esc(s.name)}</b><span>${items(cnt(s.id))}</span></div>${ICON.chev}</button>`).join("")}
   <div class="grid">${rest.map(s => `<button class="tile" data-go="#s/${encodeURIComponent(s.id)}">${badge(s)}<div><b>${esc(s.name)}</b><span class="cnt">${items(cnt(s.id))}</span></div></button>`).join("")}</div>
   ${db.notes.length ? `<div class="label">Recent</div><div class="list">${[...db.notes].sort((a,b)=>b.updated-a.updated).slice(0,3).map(n=>noteCard(n,"",true)).join("")}</div>` : ""}`;
 }
@@ -330,7 +348,7 @@ function viewSection(id){
     $("#app").innerHTML = `
     <div class="top"><button class="iconbtn" aria-label="Back" data-go="#">${ICON.back}</button>${badge(s)}<h1>${esc(s.name)}</h1></div>
     <div class="subtiles">${subs.map(k => { const c = db.notes.filter(n=>n.section===k.id).length;
-      return PICS[k.em] ? `<button class="tile pic" data-go="#s/${encodeURIComponent(k.id)}"><img class="mascot" src="${PICS[k.em]}" alt=""><div><b>${esc(k.name)}</b><span class="cnt">${items(c)}</span></div></button>`
+      return pic(k.em) ? `<button class="tile pic" data-go="#s/${encodeURIComponent(k.id)}"><img class="mascot" src="${pic(k.em)}" alt=""><div><b>${esc(k.name)}</b><span class="cnt">${items(c)}</span></div></button>`
         : `<button class="tile pic" data-go="#s/${encodeURIComponent(k.id)}">${badge(k)}<div><b>${esc(k.name)}</b><span class="cnt">${items(c)}</span></div></button>`; }).join("")}</div>
     ${list.length ? `<div class="label">Other items</div><div class="list">${list.map(n=>noteCard(n,"",false)).join("")}</div>` : ""}`;
     return;
