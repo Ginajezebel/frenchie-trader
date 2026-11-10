@@ -15,8 +15,8 @@
 <style>
 /* One phone column, big text. Notes live only in this phone's storage; nothing is ever sent anywhere. */
 :root{
-  --bg:#F4F6FB; --card:#FFFFFF; --ink:#111733; --ink2:#4A5277; --muted:#767E9F; --line:#DDE2EF; --chip:#EAEEF9;
-  --blue:#2F5BFF; --blueInk:#FFFFFF; --red:#D92D45; --green:#00935F;
+  --bg:#F6F7FB; --card:#FFFFFF; --ink:#141A33; --ink2:#5B6380; --muted:#7F87A3; --line:#E7EAF3; --chip:#EEF2FF;
+  --blue:#3157F5; --blueInk:#FFFFFF; --red:#D92D45; --green:#00935F;
   --shadow:0 1px 2px rgba(20,30,80,.06),0 8px 24px rgba(20,30,80,.06);
   --font:-apple-system,"SF Pro Text",system-ui,"Segoe UI",sans-serif;
   --round:ui-rounded,"SF Pro Rounded",-apple-system,system-ui,sans-serif;
@@ -53,23 +53,28 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}
 
 /* section grid */
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.tile{border:0;background:var(--card);box-shadow:var(--shadow);border-radius:20px;padding:18px 16px;text-align:left;display:flex;flex-direction:column;gap:6px;min-height:118px}
+.tile{border:1px solid var(--line);background:var(--card);box-shadow:0 1px 2px rgba(20,26,51,.04),0 6px 18px rgba(20,26,51,.04);border-radius:22px;padding:16px;text-align:left;display:flex;flex-direction:column;gap:12px;min-height:132px;color:var(--ink)}
+.tile:active,.feature:active,.noteopen:active{transform:scale(.98)}
 .tile .em{font-size:34px;line-height:1}
-.tile b{font-size:21px;font-weight:700;line-height:1.2;overflow-wrap:anywhere}
-.tile span{font-size:16px;color:var(--muted)}
+.tile b{font-size:20px;font-weight:700;line-height:1.2;overflow-wrap:anywhere;display:block}
+.tile .cnt{font-size:16px;color:var(--muted)}
 
 /* list */
 .list{display:flex;flex-direction:column;gap:10px}
-.note{border:0;background:var(--card);box-shadow:var(--shadow);border-radius:18px;padding:16px 18px;text-align:left;display:flex;flex-direction:column;gap:4px;width:100%}
-.note b{font-size:21px;font-weight:700;overflow-wrap:anywhere}
-.note p{margin:0;color:var(--ink2);font-size:18px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.note{background:var(--card);border:1px solid var(--line);box-shadow:0 1px 2px rgba(20,26,51,.04),0 6px 18px rgba(20,26,51,.04);border-radius:22px;overflow:hidden}
+.noteopen{border:0;background:none;padding:16px 18px 12px;text-align:left;display:flex;flex-direction:column;gap:4px;width:100%}
+.note b{font-size:16px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;overflow-wrap:anywhere}
+.note p{margin:2px 0 0;color:var(--ink);font-size:23px;font-weight:600;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.acts{display:flex;gap:10px;padding:0 18px 16px}
+.act{flex:1;border:0;height:52px;border-radius:14px;background:var(--chip);color:var(--blue);font-size:19px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.act svg{width:22px;height:22px}
 .note small{font-size:15px;color:var(--muted)}
 mark{background:#FFE066;color:#111733;border-radius:4px;padding:0 2px}
 .empty{text-align:center;color:var(--muted);padding:40px 10px;font-size:19px}
 .label{font-size:16px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:22px 4px 10px}
 
 /* big add button */
-.fab{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 18px);border:0;background:var(--blue);color:var(--blueInk);font-size:22px;font-weight:800;height:64px;padding:0 34px;border-radius:999px;box-shadow:0 10px 30px rgba(47,91,255,.35);display:flex;align-items:center;gap:10px;z-index:20;white-space:nowrap}
+.fab{position:fixed;left:max(18px,calc(50% - 262px));right:max(18px,calc(50% - 262px));justify-content:center;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);border:0;background:var(--blue);color:var(--blueInk);font-size:21px;font-weight:800;height:62px;padding:0 24px;border-radius:20px;box-shadow:0 10px 30px rgba(47,91,255,.35);display:flex;align-items:center;gap:10px;z-index:20;white-space:nowrap}
 .fab svg{width:26px;height:26px}
 
 /* forms */
@@ -77,7 +82,7 @@ mark{background:#FFE066;color:#111733;border-radius:4px;padding:0 2px}
 .field > span{font-size:17px;font-weight:700;color:var(--ink2)}
 .field input,.field textarea,.field select{width:100%;border:2px solid var(--line);background:var(--card);border-radius:16px;padding:14px 16px;font-size:20px;outline:none;-webkit-appearance:none}
 .field select{height:60px;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 26px) 26px,calc(100% - 18px) 26px;background-size:8px 8px;background-repeat:no-repeat;padding-right:44px}
-.field textarea{min-height:42vh;resize:vertical;line-height:1.5}
+.field textarea{min-height:150px;resize:vertical;line-height:1.5}
 .field input:focus,.field textarea:focus,.field select:focus{border-color:var(--blue)}
 .btn{border:0;width:100%;height:62px;border-radius:18px;font-size:21px;font-weight:800;background:var(--blue);color:var(--blueInk);margin-top:6px}
 .btn.soft{background:var(--chip);color:var(--ink)}
@@ -108,6 +113,17 @@ mark{background:#FFE066;color:#111733;border-radius:4px;padding:0 2px}
 .sheet h3{margin:0 0 8px;font-size:24px}
 .sheet p{margin:0 0 16px;color:var(--ink2);font-size:19px}
 .toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 14px);background:var(--ink);color:var(--bg);padding:14px 22px;border-radius:999px;font-weight:700;font-size:18px;z-index:60;box-shadow:var(--shadow);max-width:90vw;text-align:center}
+.sub{color:var(--muted);font-size:17px;margin:-6px 2px 16px;display:flex;align-items:center;gap:8px}
+.sub .dot{width:9px;height:9px;border-radius:50%;background:var(--muted);flex:none}
+.sub .dot.ok{background:#1BA672} .sub .dot.bad{background:var(--red)}
+.sub button{border:0;background:none;padding:0;font:inherit;color:inherit}
+.feature{border:1px solid #F6DCC4;background:linear-gradient(135deg,#FFF7EE,#FFEFE2);border-radius:24px;padding:16px 18px;display:flex;align-items:center;gap:16px;width:100%;text-align:left;margin-bottom:12px;color:#141A33}
+.feature .fimg{width:76px;height:76px;border-radius:20px;background:#fff;padding:6px;box-shadow:0 4px 14px rgba(200,90,20,.15);flex:none;object-fit:contain}
+.feature b{font-size:24px;display:block;line-height:1.2} .feature span{color:#9A5B2B;font-size:17px}
+.feature svg{margin-left:auto;width:22px;height:22px;color:#C08A5E;flex:none}
+.badge{width:48px;height:48px;border-radius:15px;display:grid;place-items:center;flex:none;font-size:26px}
+.badge svg{width:26px;height:26px}
+.badge .emimg{width:30px;height:30px;vertical-align:0}
 .sync{border:0;background:var(--chip);color:var(--ink2);border-radius:999px;height:40px;padding:0 14px;font-size:16px;font-weight:700;white-space:nowrap}
 .sync.ok{color:var(--green)} .sync.bad{color:var(--red)} .sync:empty{display:none}
 .banner{background:var(--chip);border-radius:16px;padding:14px 16px;font-size:17px;color:var(--ink2);margin-bottom:16px;display:flex;gap:10px;align-items:center}
@@ -184,10 +200,36 @@ function ask(title, text, yesLabel, onYes){
 }
 const ICON = {
   search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+  sliders:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>',
+  chev:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>',
+  copy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2.5"/><path d="M5 15H4.5A1.5 1.5 0 0 1 3 13.5v-9A1.5 1.5 0 0 1 4.5 3h9A1.5 1.5 0 0 1 15 4.5V5"/></svg>',
+  open:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>',
   plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
   back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
   gear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>'
 };
+
+/* section badges: line icon + soft color for the built-in sections, emoji for custom ones */
+const SECICON = {
+  car:['<path d="M5 16h14M6 16v2M18 16v2M4 16v-3l2-5a2 2 0 0 1 2-1h8a2 2 0 0 1 2 1l2 5v3"/><circle cx="8" cy="13" r=".8"/><circle cx="16" cy="13" r=".8"/>',"#E8F0FF","#3157F5"],
+  home:['<path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/>',"#E9F7EF","#1E9A5B"],
+  health:['<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>',"#FDECEF","#D6455D"],
+  trading:['<path d="M4 18 10 12l4 4 6-8"/><path d="M15 8h5v5"/>',"#F0ECFF","#6B4EE6"],
+  money:['<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>',"#EAF6F4","#178B7A"],
+  family:['<circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.2A5 5 0 0 1 21 19"/>',"#FFF2E6","#D9761E"],
+  pets:['<circle cx="7" cy="10" r="1.8"/><circle cx="17" cy="10" r="1.8"/><circle cx="10" cy="6" r="1.8"/><circle cx="14" cy="6" r="1.8"/><path d="M8 17c0-2.5 2-4.5 4-4.5s4 2 4 4.5c0 1.5-1.5 2-4 2s-4-.5-4-2z"/>',"#FBEFE6","#A8643A"],
+  work:['<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 13h18"/>',"#ECEFF5","#4A5677"],
+  travel:['<path d="M10 14 3 11l1.5-1.5 7 1 4-4.5c1-1 2.5-1.5 3.3-.8.7.8.2 2.3-.8 3.3l-4.5 4 1 7L13 21l-3-7z"/>',"#E6F6FB","#1C8DB0"],
+  shopping:['<path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',"#FDEBF5","#C2407E"],
+  ideas:['<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/>',"#FFF8DB","#B88A00"],
+  other:['<path d="M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/>',"#F0F1F5","#6B7290"]
+};
+function badge(s){
+  const d = SECICON[s.id];
+  if(d && s.em === (DEFAULT_SECTIONS.find(x=>x[0]===s.id)||[])[1]) return `<span class="badge" style="background:${d[1]};color:${d[2]}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d[0]}</svg></span>`;
+  return `<span class="badge" style="background:#F0F1F5">${emHTML(s.em)}</span>`;
+}
+const items = c => c ? c + (c===1 ? " item" : " items") : "Empty";
 
 /* ---------- routing (hash so the iPhone back swipe works) ---------- */
 let query = "";
@@ -210,11 +252,12 @@ function viewHome(){
   const days = db.lastBackup ? Math.floor((Date.now()-db.lastBackup)/864e5) : null;
   const needBackup = !getToken() && db.notes.length >= 3 && (days === null || days >= 14);
   $("#app").innerHTML = `
-    <div class="top"><h1>My Notes</h1><button class="sync" id="syncpill" data-go="#settings">${pillText()}</button><button class="iconbtn" aria-label="Settings and backup" data-go="#settings">${ICON.gear}</button></div>
+    <div class="top"><h1>My Notes</h1><button class="iconbtn" aria-label="Settings and backup" data-go="#settings">${ICON.sliders}</button></div>
+    <p class="sub"><span class="dot ${syncState==="ok"?"ok":syncState==="bad"?"bad":""}" id="syncdot"></span><button data-go="#settings" id="syncpill">${pillText() || "Saved on this device"}</button> · ${items(db.notes.length)}</p>
     ${needBackup ? `<div class="banner">💾 ${days===null ? "Save a backup of your notes." : `Last backup ${days} days ago.`}<button class="small" data-go="#settings">Back up</button></div>` : ""}
-    <div class="search">${ICON.search}<input id="q" type="search" placeholder="Search all notes" autocomplete="off" autocorrect="off" enterkeyhint="search" value="${esc(query)}" aria-label="Search all notes"><button class="clear ${query?"":"hide"}" aria-label="Clear search">×</button></div>
+    <div class="search">${ICON.search}<input id="q" type="search" placeholder="Search everything" autocomplete="off" autocorrect="off" enterkeyhint="search" value="${esc(query)}" aria-label="Search all notes"><button class="clear ${query?"":"hide"}" aria-label="Clear search">×</button></div>
     <div id="body"></div>
-    <button class="fab" data-go="#new">${ICON.plus} New note</button>`;
+    <button class="fab" data-go="#new">${ICON.plus} Add item</button>`;
   const q = $("#q");
   q.addEventListener("input", () => { query = q.value; $(".search .clear").classList.toggle("hide", !query); homeBody(); });
   $(".search .clear").addEventListener("click", () => { query = ""; q.value = ""; $(".search .clear").classList.add("hide"); homeBody(); q.focus(); });
@@ -228,28 +271,46 @@ function homeBody(){
                          .sort((a,b)=>b.updated-a.updated);
     body.innerHTML = hits.length
       ? `<div class="label">${hits.length} found</div><div class="list">${hits.map(n => noteCard(n, query, true)).join("")}</div>`
-      : `<div class="empty">No notes match “${esc(query)}”.</div>`;
+      : `<div class="empty">Nothing matches “${esc(query)}”.</div>`;
     return;
   }
-  body.innerHTML = `<div class="grid">${db.sections.map(s => {
-    const c = db.notes.filter(n=>n.section===s.id).length;
-    return `<button class="tile" data-go="#s/${encodeURIComponent(s.id)}"><span class="em">${emHTML(s.em)}</span><b>${esc(s.name)}</b><span>${c ? c + (c===1?" note":" notes") : "Empty"}</span></button>`;
-  }).join("")}</div>
+  const cnt = id => db.notes.filter(n=>n.section===id).length;
+  const feat = db.sections.filter(s => s.em === "phoenix");
+  const rest = db.sections.filter(s => s.em !== "phoenix");
+  body.innerHTML = `${feat.map(s => `<button class="feature" data-go="#s/${encodeURIComponent(s.id)}"><img class="fimg" src="${PHOENIX}" alt=""><div><b>${esc(s.name)}</b><span>${items(cnt(s.id))}</span></div>${ICON.chev}</button>`).join("")}
+  <div class="grid">${rest.map(s => `<button class="tile" data-go="#s/${encodeURIComponent(s.id)}">${badge(s)}<div><b>${esc(s.name)}</b><span class="cnt">${items(cnt(s.id))}</span></div></button>`).join("")}</div>
   ${db.notes.length ? `<div class="label">Recent</div><div class="list">${[...db.notes].sort((a,b)=>b.updated-a.updated).slice(0,3).map(n=>noteCard(n,"",true)).join("")}</div>` : ""}`;
 }
 function noteCard(n, q, showSec){
   const s = sec(n.section);
-  return `<button class="note" data-go="#edit/${encodeURIComponent(n.id)}"><b>${hl(n.title || "Untitled", q)}</b>${n.body ? `<p>${hl(snippet(n.body,q), q)}</p>` : ""}<small>${showSec ? emHTML(s.em)+" "+esc(s.name)+" · " : ""}${when(n.updated)}</small></button>`;
+  const url = findUrl(n.body) || findUrl(n.title);
+  return `<div class="note"><button class="noteopen" data-go="#edit/${encodeURIComponent(n.id)}" aria-label="Edit ${esc(n.title||"note")}"><b>${hl(n.title || "Untitled", q)}</b>${n.body ? `<p>${hl(snippet(n.body,q), q)}</p>` : ""}${showSec ? `<small>${emHTML(s.em)} ${esc(s.name)} · ${when(n.updated)}</small>` : ""}</button>
+    <div class="acts"><button class="act" data-copy="${esc(n.id)}">${ICON.copy} Copy</button>${url ? `<a class="act" href="${esc(url)}" target="_blank" rel="noopener">${ICON.open} Open</a>` : ""}</div></div>`;
 }
+
+function findUrl(t){
+  const m = String(t||"").match(/\bhttps?:\/\/[^\s<>"]+|\bwww\.[^\s<>"]+|\b[a-z0-9-]+(\.[a-z0-9-]+)*\.(com|org|net|edu|gov|io|co|us|app|me|info|biz|ly)(\/[^\s<>"]*)?/i);
+  if(!m) return "";
+  const u = m[0].replace(/[.,;:)\]]+$/,"");
+  return /^https?:\/\//i.test(u) ? u : "https://" + u;
+}
+document.addEventListener("click", async e => {
+  const c = e.target.closest("[data-copy]"); if(!c) return;
+  e.stopPropagation();
+  const n = db.notes.find(x => x.id === c.dataset.copy); if(!n) return;
+  const text = n.body.trim() || n.title;
+  try{ await navigator.clipboard.writeText(text); toast("Copied ✓"); }
+  catch{ toast("Couldn't copy. Open the note and copy from there."); }
+});
 
 /* ---------- section ---------- */
 function viewSection(id){
   const s = db.sections.find(x=>x.id===id); if(!s) return go("#");
   const list = notesIn(id);
   $("#app").innerHTML = `
-    <div class="top"><button class="iconbtn" aria-label="Back" data-go="#">${ICON.back}</button><h1>${emHTML(s.em)} ${esc(s.name)}</h1></div>
-    ${list.length ? `<div class="list">${list.map(n=>noteCard(n,"",false)).join("")}</div>` : `<div class="empty">No notes here yet.<br>Tap <b>New note</b> to add one.</div>`}
-    <button class="fab" data-go="#new/${encodeURIComponent(id)}">${ICON.plus} New note</button>`;
+    <div class="top"><button class="iconbtn" aria-label="Back" data-go="#">${ICON.back}</button>${badge(s)}<h1>${esc(s.name)}</h1></div>
+    ${list.length ? `<div class="list">${list.map(n=>noteCard(n,"",false)).join("")}</div>` : `<div class="empty">Nothing here yet.<br>Tap <b>Add item</b> to add one.</div>`}
+    <button class="fab" data-go="#new/${encodeURIComponent(id)}">${ICON.plus} Add item</button>`;
 }
 
 /* ---------- add / edit ---------- */
@@ -259,14 +320,14 @@ function viewEdit(id, presetSection){
   const secId = n ? n.section : (presetSection || "other");
   const backTo = "#s/" + encodeURIComponent(secId);
   $("#app").innerHTML = `
-    <div class="top"><button class="iconbtn" aria-label="Back" id="back">${ICON.back}</button><h1>${n ? "Edit note" : "New note"}</h1></div>
+    <div class="top"><button class="iconbtn" aria-label="Back" id="back">${ICON.back}</button><h1>${n ? "Edit item" : "New item"}</h1></div>
     <label class="field"><span>Section</span><select id="f-sec">${db.sections.map(s=>`<option value="${esc(s.id)}" ${s.id===secId?"selected":""}>${esc(emText(s.em))} ${esc(s.name)}</option>`).join("")}</select></label>
-    <label class="field"><span>Title</span><input id="f-title" type="text" placeholder="e.g. Oil change" value="${n?esc(n.title):""}" enterkeyhint="next"></label>
-    <label class="field"><span>Note</span><textarea id="f-body" placeholder="Write anything here…">${n?esc(n.body):""}</textarea></label>
+    <label class="field"><span>Label</span><input id="f-title" type="text" placeholder="e.g. Home Wi-Fi" value="${n?esc(n.title):""}" enterkeyhint="next"></label>
+    <label class="field"><span>Info</span><textarea id="f-body" rows="3" placeholder="Password, web address, or anything…" autocapitalize="off" autocorrect="off" spellcheck="false">${n?esc(n.body):""}</textarea></label>
     ${n ? `<p class="meta">Last changed ${when(n.updated)}</p>` : ""}
     <button class="btn" id="f-save">Save</button>
-    ${n ? `<button class="btn danger" id="f-del" style="margin-top:14px">Delete note</button>` : ""}
-    <p class="hint">Don’t save passwords or account numbers here.</p>`;
+    ${n ? `<button class="btn danger" id="f-del" style="margin-top:14px">Delete item</button>` : ""}
+    <p class="hint">Tip: bank logins and card numbers are safer in the iPhone Passwords app.</p>`;
   const dirty = () => {
     const t = $("#f-title").value, b = $("#f-body").value, s = $("#f-sec").value;
     return n ? (t!==n.title || b!==n.body || s!==n.section) : (t.trim() || b.trim());
@@ -402,10 +463,11 @@ const TOKEN_KEY = "mynotes_key";
 function getToken(){ try{ return localStorage.getItem(TOKEN_KEY) || ""; }catch{ return ""; } }
 function setToken(v){ try{ v ? localStorage.setItem(TOKEN_KEY, v) : localStorage.removeItem(TOKEN_KEY); }catch{} }
 let syncMsg = "", syncState = "", syncing = false, syncAgain = false, syncTimer;
-function pillText(){ if(!getToken()) return ""; return syncState==="busy" ? "Syncing…" : syncState==="ok" ? "✓ Synced" : syncState==="bad" ? "⚠ Not synced" : ""; }
+function pillText(){ if(!getToken()) return ""; return syncState==="busy" ? "Syncing…" : syncState==="ok" ? "Synced" : syncState==="bad" ? "Not synced" : "Connecting…"; }
 function setSync(state, msg){
   syncState = state; if(msg) syncMsg = msg;
-  const p = $("#syncpill"); if(p){ p.textContent = pillText(); p.className = "sync " + (state==="ok"?"ok":state==="bad"?"bad":""); }
+  const p = $("#syncpill"); if(p) p.textContent = pillText() || "Saved on this device";
+  const d = $("#syncdot"); if(d) d.className = "dot " + (state==="ok"?"ok":state==="bad"?"bad":"");
 }
 function syncSoon(){ if(!getToken()) return; clearTimeout(syncTimer); syncTimer = setTimeout(() => sync(false), 600); }
 function toB64(str){ const bytes = new TextEncoder().encode(str); let bin = ""; for(let i=0;i<bytes.length;i+=0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i,i+0x8000)); return btoa(bin); }
