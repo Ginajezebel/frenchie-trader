@@ -159,9 +159,10 @@ try{ navigator.storage && navigator.storage.persist && navigator.storage.persist
 
 /* ---------- helpers ---------- */
 const PHOENIX = "icon-phoenix-180.png";
-const PICS = { phoenix: PHOENIX, jaguar: "icon-clever-180.png" };
+const PICS = { phoenix: PHOENIX, jaguar: "icon-clever-180.png", sat: "sat-tile.jpg" };
+const VIDS = { sat: "sat-tile.mp4" };
 function emHTML(em){ return PICS[em] ? `<img class="emimg" src="${PICS[em]}" alt="">` : esc(em||""); }
-function emText(em){ return em === "phoenix" ? "🔥" : em === "jaguar" ? "📖" : (em||""); }
+function emText(em){ return em === "phoenix" ? "🔥" : em === "jaguar" ? "📖" : em === "sat" ? "🛡️" : (em||""); }
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
@@ -278,7 +279,7 @@ function homeBody(){
   const cnt = id => db.notes.filter(n=>n.section===id).length;
   const feat = db.sections.filter(s => PICS[s.em]);
   const rest = db.sections.filter(s => !PICS[s.em]);
-  body.innerHTML = `${feat.map(s => `<button class="feature" data-go="#s/${encodeURIComponent(s.id)}"><img class="fimg" src="${PICS[s.em]}" alt=""><div><b>${esc(s.name)}</b><span>${items(cnt(s.id))}</span></div>${ICON.chev}</button>`).join("")}
+  body.innerHTML = `${feat.map(s => `<button class="feature" data-go="#s/${encodeURIComponent(s.id)}">${VIDS[s.em] ? `<video class="fimg" src="${VIDS[s.em]}" poster="${PICS[s.em]}" autoplay muted loop playsinline disablepictureinpicture aria-hidden="true"></video>` : `<img class="fimg" src="${PICS[s.em]}" alt="">`}<div><b>${esc(s.name)}</b><span>${items(cnt(s.id))}</span></div>${ICON.chev}</button>`).join("")}
   <div class="grid">${rest.map(s => `<button class="tile" data-go="#s/${encodeURIComponent(s.id)}">${badge(s)}<div><b>${esc(s.name)}</b><span class="cnt">${items(cnt(s.id))}</span></div></button>`).join("")}</div>
   ${db.notes.length ? `<div class="label">Recent</div><div class="list">${[...db.notes].sort((a,b)=>b.updated-a.updated).slice(0,3).map(n=>noteCard(n,"",true)).join("")}</div>` : ""}`;
 }
@@ -565,6 +566,14 @@ function migrate(){
     if(!db.sections.some(s => s.id === "clever")){
       const h = db.sections.findIndex(s => s.id === "huntington");
       db.sections.splice(h + 1, 0, {id:"clever", em:"jaguar", name:"Clever"});
+    }
+  }
+  if(!db.flags.sat){
+    db.flags.sat = 1; changed = true;
+    if(!db.sections.some(s => s.id === "sat")){
+      let i = db.sections.findIndex(s => s.id === "clever");
+      if(i < 0) i = db.sections.findIndex(s => s.id === "huntington");
+      db.sections.splice(i + 1, 0, {id:"sat", em:"sat", name:"SAT"});
     }
   }
   if(!changed) return false;
