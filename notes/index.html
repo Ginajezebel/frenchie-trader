@@ -176,10 +176,12 @@ const WIDE = { homework: 1 };
 const kids = id => db.sections.filter(s => s.parent === id);
 const isWrite = id => (db.sections.find(s => s.id === id) || {}).kind === "write";
 /* private pictures live in the private notes repo ("priv:<path>"), loaded with the key and kept on this device */
-const privLoading = {};
+const privLoading = {}, privPick = {};
 function privSrc(em){
   if(!String(em||"").startsWith("priv:")) return "";
-  const path = em.slice(5), k = "mynotes_pic:" + path;
+  const list = em.slice(5).split("|");               // several pictures: a random one each time the app opens
+  if(!(em in privPick)) privPick[em] = list[Math.floor(Math.random() * list.length)];
+  const path = privPick[em], k = "mynotes_pic:" + path;
   try{ const c = localStorage.getItem(k); if(c) return c; }catch{}
   if(getToken() && !privLoading[path]){
     privLoading[path] = 1;
