@@ -130,6 +130,12 @@ mark{background:#FFE066;color:#111733;border-radius:4px;padding:0 2px}
 .note.write b{font-size:21px;color:var(--ink);text-transform:none;letter-spacing:0}
 .note.write p{font-size:20px;font-weight:500;color:var(--ink2);white-space:pre-wrap;display:block;-webkit-line-clamp:unset}
 .note.write .noteopen{padding-bottom:16px}
+.note.logins .noteopen{padding-bottom:6px}
+.lines{padding:0 18px 14px;display:flex;flex-direction:column;gap:8px}
+.line{display:flex;align-items:center;gap:10px;min-height:44px}
+.line span{flex:1;font-size:21px;font-weight:600;color:var(--ink);overflow-wrap:anywhere}
+.line span.dim{color:var(--ink2);font-weight:500}
+.line .act{flex:none;height:44px;padding:0 16px;font-size:17px}
 .feature b{font-size:24px;display:block;line-height:1.2} .feature span{color:#9A5B2B;font-size:17px}
 .feature svg{margin-left:auto;width:22px;height:22px;color:#C08A5E;flex:none}
 .badge{width:48px;height:48px;border-radius:15px;display:grid;place-items:center;flex:none;font-size:26px}
@@ -335,6 +341,14 @@ function homeBody(){
 }
 function noteCard(n, q, showSec){
   const s = sec(n.section);
+  if(s.kind === "logins"){
+    // student logins: only password lines get a Copy button (not names, IDs or emails)
+    const rows = n.body.split("\n").map((l,i) => [l.trim(), i]).filter(([l]) => l);
+    return `<div class="note logins"><button class="noteopen" data-go="#edit/${encodeURIComponent(n.id)}" aria-label="Edit ${esc(n.title||"note")}"><b>${esc(n.title || "Untitled")}</b>${showSec ? `<small>${emHTML(s.em)} ${esc(s.name)} · ${when(n.updated)}</small>` : ""}</button>
+    <div class="lines">${rows.map(([l,i]) => isPw(l)
+      ? `<div class="line"><span>${esc(l)}</span><button class="act" data-copyline="${esc(n.id)}:${i}">${ICON.copy} Copy</button></div>`
+      : `<div class="line"><span class="dim">${esc(l)}</span></div>`).join("")}</div></div>`;
+  }
   if(s.kind === "write") return `<div class="note write"><button class="noteopen" data-go="#edit/${encodeURIComponent(n.id)}" aria-label="Edit ${esc(n.title||"note")}">${n.title ? `<b>${hl(n.title, q)}</b>` : ""}${n.body ? `<p>${hl(q ? snippet(n.body,q) : n.body, q)}</p>` : ""}${showSec ? `<small>${esc(s.name)} · ${when(n.updated)}</small>` : ""}</button></div>`;
   return `<div class="note"><button class="noteopen" data-go="#edit/${encodeURIComponent(n.id)}" aria-label="Edit ${esc(n.title||"note")}"><b>${hl(n.title || "Untitled", q)}</b>${n.body ? `<p>${hl(snippet(n.body,q), q)}</p>` : ""}${showSec ? `<small>${emHTML(s.em)} ${esc(s.name)} · ${when(n.updated)}</small>` : ""}</button>
     <div class="acts"><button class="act" data-copy="${esc(n.id)}">${ICON.copy} Copy</button></div></div>`;
@@ -346,6 +360,17 @@ function findUrl(t){
   const u = m[0].replace(/[.,;:)\]]+$/,"");
   return /^https?:\/\//i.test(u) ? u : "https://" + u;
 }
+const isPw = l => !l.includes("@") && !/^\d+$/.test(l);
+const pwValue = l => l.replace(/\s*\(.*\)\s*$/, "").trim();   // "abc123 (small i)" copies "abc123"
+document.addEventListener("click", async e => {
+  const cl = e.target.closest("[data-copyline]"); if(!cl) return;
+  e.stopPropagation();
+  const [id, i] = cl.dataset.copyline.split(":");
+  const n = db.notes.find(x => x.id === id); if(!n) return;
+  const line = (n.body.split("\n")[+i] || "").trim();
+  try{ await navigator.clipboard.writeText(pwValue(line)); toast("Copied ✓"); }
+  catch{ toast("Couldn't copy. Open the item and copy from there."); }
+});
 document.addEventListener("click", async e => {
   const c = e.target.closest("[data-copy]"); if(!c) return;
   e.stopPropagation();
