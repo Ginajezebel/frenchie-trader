@@ -130,6 +130,15 @@ mark{background:#FFE066;color:#111733;border-radius:4px;padding:0 2px}
 .note.write b{font-size:21px;color:var(--ink);text-transform:none;letter-spacing:0}
 .note.write p{font-size:20px;font-weight:500;color:var(--ink2);white-space:pre-wrap;display:block;-webkit-line-clamp:unset}
 .note.write .noteopen{padding-bottom:16px}
+.note.write{position:relative}
+.note.write.pickable .noteopen{padding-right:64px}
+.pick{position:absolute;top:10px;right:10px;width:48px;height:48px;display:grid;place-items:center;cursor:pointer}
+.pick input{width:28px;height:28px;accent-color:var(--blue);margin:0;cursor:pointer}
+.note.write.picked{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue)}
+.pickbar{display:flex;gap:10px;margin:0 0 14px}
+.pickbar .act{flex:1;height:52px;font-size:19px;white-space:nowrap}
+.pickbar .act.go{background:var(--blue);color:#fff}
+.pickbar .act.go[disabled]{opacity:.45}
 .note.logins .noteopen{padding-bottom:6px}
 .lines{padding:0 18px 14px;display:flex;flex-direction:column;gap:8px}
 .line{display:flex;align-items:center;gap:10px;min-height:44px}
@@ -339,7 +348,8 @@ function homeBody(){
   <div class="grid">${rest.map(s => `<button class="tile" data-go="#s/${encodeURIComponent(s.id)}">${badge(s)}<div><b>${esc(s.name)}</b><span class="cnt">${items(cnt(s.id))}</span></div></button>`).join("")}</div>
   ${db.notes.length ? `<div class="label">Recent</div><div class="list">${[...db.notes].sort((a,b)=>b.updated-a.updated).slice(0,3).map(n=>noteCard(n,"",true)).join("")}</div>` : ""}`;
 }
-function noteCard(n, q, showSec){
+const picked = new Set();
+function noteCard(n, q, showSec, pickable){
   const s = sec(n.section);
   if(s.kind === "logins"){
     // student logins: only password lines get a Copy button (not names, IDs or emails)
@@ -349,7 +359,7 @@ function noteCard(n, q, showSec){
       ? `<div class="line"><span>${esc(l)}</span><button class="act" data-copyline="${esc(n.id)}:${i}">${ICON.copy} Copy</button></div>`
       : `<div class="line"><span class="dim">${esc(l)}</span></div>`).join("")}</div></div>`;
   }
-  if(s.kind === "write") return `<div class="note write"><button class="noteopen" data-go="#edit/${encodeURIComponent(n.id)}" aria-label="Edit ${esc(n.title||"note")}">${n.title ? `<b>${hl(n.title, q)}</b>` : ""}${n.body ? `<p>${hl(q ? snippet(n.body,q) : n.body, q)}</p>` : ""}${showSec ? `<small>${esc(s.name)} · ${when(n.updated)}</small>` : ""}</button></div>`;
+  if(s.kind === "write") return `<div class="note write${pickable?" pickable":""}${pickable&&picked.has(n.id)?" picked":""}">${pickable ? `<label class="pick" aria-label="Select ${esc(n.title||"note")}"><input type="checkbox" data-pick="${esc(n.id)}"${picked.has(n.id)?" checked":""}></label>` : ""}<button class="noteopen" data-go="#edit/${encodeURIComponent(n.id)}" aria-label="Edit ${esc(n.title||"note")}">${n.title ? `<b>${hl(n.title, q)}</b>` : ""}${n.body ? `<p>${hl(q ? snippet(n.body,q) : n.body, q)}</p>` : ""}${showSec ? `<small>${esc(s.name)} · ${when(n.updated)}</small>` : ""}</button></div>`;
   return `<div class="note"><button class="noteopen" data-go="#edit/${encodeURIComponent(n.id)}" aria-label="Edit ${esc(n.title||"note")}"><b>${hl(n.title || "Untitled", q)}</b>${n.body ? `<p>${hl(snippet(n.body,q), q)}</p>` : ""}${showSec ? `<small>${emHTML(s.em)} ${esc(s.name)} · ${when(n.updated)}</small>` : ""}</button>
     <div class="acts"><button class="act" data-copy="${esc(n.id)}">${ICON.copy} Copy</button></div></div>`;
 }
@@ -395,11 +405,47 @@ function viewSection(id){
     ${list.length ? `<div class="label">Other items</div><div class="list">${list.map(n=>noteCard(n,"",false)).join("")}</div>` : ""}`;
     return;
   }
+  const canPick = s.kind === "write" && list.length > 0;
+  if(pickSec !== id){ picked.clear(); pickSec = id; }
   $("#app").innerHTML = `
     <div class="top"><button class="iconbtn" aria-label="Back" data-go="${back}">${ICON.back}</button>${badge(s)}<h1>${esc(s.name)}</h1></div>
-    ${list.length ? `<div class="list">${list.map(n=>noteCard(n,"",false)).join("")}</div>` : `<div class="empty">Nothing here yet.<br>Tap <b>${s.kind==="write"?"New note":"Add item"}</b> to add one.</div>`}
+    ${canPick ? `<div class="pickbar"><button class="act" id="pickall"></button><button class="act go" id="copysel">${ICON.copy} <span></span></button></div>` : ""}
+    ${list.length ? `<div class="list">${list.map(n=>noteCard(n,"",false,canPick)).join("")}</div>` : `<div class="empty">Nothing here yet.<br>Tap <b>${s.kind==="write"?"New note":"Add item"}</b> to add one.</div>`}
     <button class="fab" data-go="#new/${encodeURIComponent(id)}">${ICON.plus} ${s.kind==="write"?"New note":"Add item"}</button>`;
+  pickUI();
 }
+
+let pickSec = null;
+function pickUI(){
+  const all = [...document.querySelectorAll("[data-pick]")];
+  document.querySelectorAll("[data-pick]").forEach(cb => cb.closest(".note").classList.toggle("picked", cb.checked));
+  const a = $("#pickall"), c = $("#copysel"); if(!a || !c) return;
+  a.textContent = all.length && all.every(cb => cb.checked) ? "Clear all" : "Select all";
+  c.querySelector("span").textContent = picked.size ? `Copy ${picked.size}` : "Copy";
+  c.disabled = !picked.size;
+}
+document.addEventListener("change", e => {
+  const cb = e.target.closest("[data-pick]"); if(!cb) return;
+  cb.checked ? picked.add(cb.dataset.pick) : picked.delete(cb.dataset.pick);
+  pickUI();
+});
+document.addEventListener("click", async e => {
+  if(e.target.closest("#pickall")){
+    const all = [...document.querySelectorAll("[data-pick]")];
+    const on = !all.every(cb => cb.checked);
+    all.forEach(cb => { cb.checked = on; on ? picked.add(cb.dataset.pick) : picked.delete(cb.dataset.pick); });
+    return pickUI();
+  }
+  if(!e.target.closest("#copysel")) return;
+  // copy checked notes in on-screen order, as plain text
+  const ids = [...document.querySelectorAll("[data-pick]")].map(cb => cb.dataset.pick).filter(id => picked.has(id));
+  const notes = ids.map(id => db.notes.find(n => n.id === id)).filter(Boolean);
+  if(!notes.length) return;
+  const sname = (db.sections.find(x => x.id === notes[0].section) || {}).name || "";
+  const text = (sname ? sname + "\n\n" : "") + notes.map(n => [n.title, n.body.trim()].filter(Boolean).join("\n")).join("\n\n----------\n\n");
+  try{ await navigator.clipboard.writeText(text); toast(`Copied ${notes.length} ✓`); }
+  catch{ toast("Couldn't copy. Try again."); }
+});
 
 /* ---------- add / edit ---------- */
 function viewEdit(id, presetSection){
