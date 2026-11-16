@@ -216,7 +216,7 @@ function privSrc(em){
 }
 function pic(em){ return PICS[em] || privSrc(em); }
 function emHTML(em){ const p = pic(em); return p ? `<img class="emimg" src="${p}" alt="">` : String(em||"").startsWith("priv:") ? "✏️" : esc(em||""); }
-function emText(em){ return em === "phoenix" ? "🔥" : em === "jaguar" ? "📖" : em === "sat" ? "🛡️" : em === "homework" ? "📚" : em === "jag-calc" ? "📐" : em === "jag-pre" || String(em).startsWith("priv:") ? "✏️" : (em||""); }
+function emText(em){ return em === "phoenix" ? "🔥" : em === "jaguar" ? "📖" : em === "sat" ? "🛡️" : em === "homework" ? "📚" : em === "sophie" ? "🎒" : em === "jag-calc" ? "📐" : em === "jag-pre" || String(em).startsWith("priv:") ? "✏️" : (em||""); }
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
