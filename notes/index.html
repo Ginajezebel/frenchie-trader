@@ -370,7 +370,7 @@ function findUrl(t){
   const u = m[0].replace(/[.,;:)\]]+$/,"");
   return /^https?:\/\//i.test(u) ? u : "https://" + u;
 }
-const isPw = l => !l.includes("@") && !/^\d+$/.test(l);
+const isPw = l => !/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(l) && !/^\d+$/.test(l);   // emails and ID numbers get no Copy
 const pwValue = l => l.replace(/\s*\(.*\)\s*$/, "").trim();   // "abc123 (small i)" copies "abc123"
 document.addEventListener("click", async e => {
   const cl = e.target.closest("[data-copyline]"); if(!cl) return;
